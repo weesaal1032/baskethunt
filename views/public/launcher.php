@@ -5,11 +5,12 @@ ob_start();
 <?php foreach ($apps as $app): ?>
     <div class="col">
         <a href="<?php echo e($app['url']);?>" target="_blank" class="text-decoration-none" data-app-id="<?php echo $app['id']; ?>">
-            <div class="card h-100 text-center">
-                <?php if($app['logo_path']): ?><img src="<?php echo e($app['logo_path']);?>" class="card-img-top p-3" style="height:80px;object-fit:contain;" alt="logo"><?php endif; ?>
-                <div class="card-body">
-                    <h5 class="card-title"><?php echo e($app['name']);?></h5>
-                    <?php if($app['description']): ?><p class="card-text small text-muted"><?php echo e($app['description']);?></p><?php endif; ?>
+            <div class="card h-100 text-center shadow-sm">
+                <?php if($app['logo_path']): ?>
+                    <div class="p-4"><img src="<?php echo e($app['logo_path']);?>" style="height:64px;width:64px;object-fit:contain;" alt="logo"></div>
+                <?php endif; ?>
+                <div class="card-body pt-0">
+                    <h6 class="card-title mb-0"><?php echo e($app['name']);?></h6>
                 </div>
             </div>
         </a>

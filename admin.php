@@ -86,6 +86,90 @@ if ($route === 'apps.index') {
     exit;
 }
 
+
+if ($route === 'apps.create') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        verify_csrf();
+        $name = trim($_POST['name'] ?? '');
+        $url = trim($_POST['url'] ?? '');
+        $is_global = isset($_POST['is_global']) ? 1 : 0;
+        $logoPath = null;
+        if (!empty($_FILES['logo']['tmp_name'])) {
+            $allowed = ['image/png'=>'png','image/jpeg'=>'jpg','image/svg+xml'=>'svg'];
+            $type = mime_content_type($_FILES['logo']['tmp_name']);
+            if (isset($allowed[$type]) && $_FILES['logo']['size'] <= 1024*1024) {
+                $dir = __DIR__.'/public/logos';
+                if (!is_dir($dir)) { mkdir($dir,0755,true); }
+                $file = uniqid().'.'.$allowed[$type];
+                move_uploaded_file($_FILES['logo']['tmp_name'],$dir.'/'.$file);
+                $logoPath = '/public/logos/'.$file;
+            }
+        }
+        $stmt = $pdo->prepare('INSERT INTO applications(name,url,logo_path,is_global,is_enabled,sort_order) VALUES (?,?,?,?,1,(SELECT IFNULL(MAX(sort_order),0)+1 FROM applications))');
+        $stmt->execute([$name,$url,$logoPath,$is_global]);
+        redirect('/admin.php?r=apps.index');
+    }
+    $app = null;
+    require __DIR__.'/views/admin/apps_form.php';
+    exit;
+}
+
+if ($route === 'apps.edit') {
+    $id = (int)($_GET['id'] ?? 0);
+    $stmt = $pdo->prepare('SELECT * FROM applications WHERE id=?');
+    $stmt->execute([$id]);
+    $app = $stmt->fetch();
+    if (!$app) { http_response_code(404); exit('Not found'); }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        verify_csrf();
+        $name = trim($_POST['name'] ?? '');
+        $url = trim($_POST['url'] ?? '');
+        $is_global = isset($_POST['is_global']) ? 1 : 0;
+        $logoPath = $app['logo_path'];
+        if (!empty($_FILES['logo']['tmp_name'])) {
+            $allowed = ['image/png'=>'png','image/jpeg'=>'jpg','image/svg+xml'=>'svg'];
+            $type = mime_content_type($_FILES['logo']['tmp_name']);
+            if (isset($allowed[$type]) && $_FILES['logo']['size'] <= 1024*1024) {
+                $dir = __DIR__.'/public/logos';
+                if (!is_dir($dir)) { mkdir($dir,0755,true); }
+                $file = uniqid().'.'.$allowed[$type];
+                move_uploaded_file($_FILES['logo']['tmp_name'],$dir.'/'.$file);
+                $logoPath = '/public/logos/'.$file;
+            }
+        }
+        $stmt = $pdo->prepare('UPDATE applications SET name=?, url=?, logo_path=?, is_global=? WHERE id=?');
+        $stmt->execute([$name,$url,$logoPath,$is_global,$id]);
+        redirect('/admin.php?r=apps.index');
+    }
+    require __DIR__.'/views/admin/apps_form.php';
+    exit;
+}
+
+
+if ($route === 'branding.index') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        verify_csrf();
+        $brand = trim($_POST['brand_name'] ?? '');
+        $color = trim($_POST['primary_color'] ?? '#0d6efd');
+        $logoPath = $settings['logo_path'] ?? null;
+        if (!empty($_FILES['logo']['tmp_name'])) {
+            $allowed = ['image/png'=>'png','image/jpeg'=>'jpg','image/svg+xml'=>'svg'];
+            $type = mime_content_type($_FILES['logo']['tmp_name']);
+            if (isset($allowed[$type]) && $_FILES['logo']['size'] <= 1024*1024) {
+                $dir = __DIR__.'/public/logos';
+                if (!is_dir($dir)) { mkdir($dir,0755,true); }
+                $file = uniqid().'.'.$allowed[$type];
+                move_uploaded_file($_FILES['logo']['tmp_name'],$dir.'/'.$file);
+                $logoPath = '/public/logos/'.$file;
+            }
+        }
+        $stmt = $pdo->prepare('UPDATE settings SET brand_name=?, primary_color=?, logo_path=? WHERE id=1');
+        $stmt->execute([$brand,$color,$logoPath]);
+        redirect('/admin.php?r=branding.index');
+    }
+    require __DIR__.'/views/admin/branding.php';
+    exit;
+}
 if ($route === 'depts.index') {
     $depts = $pdo->query('SELECT * FROM departments ORDER BY sort_order')->fetchAll();
     require __DIR__.'/views/admin/depts_index.php';
