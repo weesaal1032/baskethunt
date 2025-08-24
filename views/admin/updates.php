@@ -1,5 +1,13 @@
 <?php ob_start(); ?>
 <h1>Updates</h1>
+<form method="post" class="mb-4">
+    <?php csrf_field(); ?>
+    <div class="mb-3">
+        <label class="form-label">Repository URL</label>
+        <input type="text" name="repo_url" class="form-control" value="<?php echo e($settings['repo_url'] ?? ''); ?>">
+    </div>
+    <button name="save_repo" class="btn btn-secondary">Save</button>
+</form>
 <?php if (!empty($info['error'])): ?>
 <div class="alert alert-danger"><?php echo e($info['error']); ?></div>
 <?php else: ?>

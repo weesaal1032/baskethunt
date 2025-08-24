@@ -1,4 +1,4 @@
-INSERT INTO settings (id, brand_name, primary_color) VALUES (1, 'Basket Hunt', '#4f46e5');
+INSERT INTO settings (id, brand_name, primary_color, repo_url) VALUES (1, 'Basket Hunt', '#4f46e5', '');
 
 INSERT INTO departments (name, slug, sort_order) VALUES
 ('HR','hr',1),

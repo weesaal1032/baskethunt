@@ -3,6 +3,7 @@ CREATE TABLE settings (
   brand_name VARCHAR(100),
   logo_path VARCHAR(255),
   primary_color VARCHAR(7),
+  repo_url VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

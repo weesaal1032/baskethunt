@@ -178,15 +178,22 @@ if ($route === 'depts.index') {
     exit;
 }
 if ($route === 'updates.index') {
-    $info = function_exists('update_check') ? update_check() : ['error' => 'Updater missing'];
+    $repo = $settings['repo_url'] ?? '';
+    $info = function_exists('update_check') ? update_check($repo) : ['error' => 'Updater missing'];
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf();
-        if (isset($_POST['update'])) {
-            apply_update();
-            $info = update_check();
+        if (isset($_POST['save_repo'])) {
+            $repo = trim($_POST['repo_url'] ?? '');
+            $stmt = $pdo->prepare('UPDATE settings SET repo_url=? WHERE id=1');
+            $stmt->execute([$repo]);
+            $settings['repo_url'] = $repo;
+            $info = function_exists('update_check') ? update_check($repo) : ['error' => 'Updater missing'];
+        } elseif (isset($_POST['update'])) {
+            apply_update($repo);
+            $info = update_check($repo);
         } elseif (isset($_POST['rollback'])) {
             rollback_update();
-            $info = update_check();
+            $info = update_check($repo);
         }
     }
     require __DIR__.'/views/admin/updates.php';

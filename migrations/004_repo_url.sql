@@ -1,0 +1,1 @@
+ALTER TABLE settings ADD COLUMN repo_url VARCHAR(255);
