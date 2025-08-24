@@ -1,10 +1,15 @@
 <?php
 require __DIR__.'/core/bootstrap.php';
 $pdo = db();
-// Fetch settings
-$settings = $pdo->query('SELECT * FROM settings WHERE id=1')->fetch() ?: [];
-// Departments for selector
-$depts = $pdo->query('SELECT slug,name FROM departments WHERE is_active=1 ORDER BY sort_order')->fetchAll();
+
+// Fetch settings and departments; show helpful message if schema is missing
+try {
+    $settings = $pdo->query('SELECT * FROM settings WHERE id=1')->fetch() ?: [];
+    $depts = $pdo->query('SELECT slug,name FROM departments WHERE is_active=1 ORDER BY sort_order')->fetchAll();
+} catch (PDOException $e) {
+    http_response_code(500);
+    exit('Database not initialized. Please run the installer.');
+}
 $deptSlug = $_GET['dept'] ?? ($_COOKIE['dept'] ?? '');
 if ($deptSlug) {
     setcookie('dept',$deptSlug,time()+3600*24*30,'/');
