@@ -1,0 +1,4 @@
+RewriteEngine On
+RewriteCond %{REQUEST_URI} ^/install
+RewriteCond %{DOCUMENT_ROOT}/installed.lock -f
+RewriteRule ^ - [F]
