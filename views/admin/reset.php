@@ -1,14 +1,12 @@
 <?php
 ob_start();
 ?>
-<div class="container mt-5" style="max-width:400px;">
-    <h1 class="h4 mb-3">Set New Password</h1>
-    <form method="post">
+<div class="max-w-sm mx-auto mt-24 bg-white p-6 rounded shadow">
+    <h1 class="text-xl font-semibold mb-4 text-center">Set New Password</h1>
+    <form method="post" class="space-y-4">
         <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
-        <div class="mb-3">
-            <input type="password" name="password" class="form-control" placeholder="New Password" required>
-        </div>
-        <button class="btn btn-primary w-100">Reset Password</button>
+        <input type="password" name="password" class="w-full border rounded p-2" placeholder="New Password" required>
+        <button class="w-full py-2 rounded text-white bg-[var(--brand)]">Reset Password</button>
     </form>
 </div>
 <?php

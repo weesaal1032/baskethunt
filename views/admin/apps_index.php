@@ -1,15 +1,15 @@
 <?php
 ob_start();
 ?>
-<h1 class="mb-4">Applications <a href="/admin.php?r=apps.create" class="btn btn-primary btn-sm float-end">Add</a></h1>
-<table class="table table-striped">
-    <thead><tr><th>Name</th><th>URL</th><th></th></tr></thead>
-    <tbody>
+<h1 class="text-2xl mb-4 flex justify-between items-center">Applications <a href="/admin.php?r=apps.create" class="bg-[var(--brand)] text-white px-3 py-1 rounded text-sm">Add</a></h1>
+<table class="min-w-full bg-white rounded shadow">
+    <thead class="bg-gray-100"><tr><th class="text-left p-2">Name</th><th class="text-left p-2">URL</th><th class="p-2"></th></tr></thead>
+    <tbody class="divide-y">
     <?php foreach($apps as $app): ?>
         <tr>
-            <td><?php echo e($app['name']);?></td>
-            <td><?php echo e($app['url']);?></td>
-            <td class="text-end"><a href="/admin.php?r=apps.edit&id=<?php echo $app['id']; ?>" class="btn btn-sm btn-secondary">Edit</a></td>
+            <td class="p-2"><?php echo e($app['name']);?></td>
+            <td class="p-2"><?php echo e($app['url']);?></td>
+            <td class="p-2 text-right"><a href="/admin.php?r=apps.edit&id=<?php echo $app['id']; ?>" class="text-sm text-blue-600 hover:underline">Edit</a></td>
         </tr>
     <?php endforeach; ?>
     </tbody>

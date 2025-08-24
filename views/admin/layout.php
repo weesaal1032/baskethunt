@@ -4,24 +4,23 @@
 <head>
 <meta charset="utf-8">
 <title>Admin - Basket Hunt</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<style>:root{--brand: <?php echo e($settings['primary_color'] ?? '#0d6efd');?>}</style>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>:root{--brand: <?php echo e($settings['primary_color'] ?? '#4f46e5');?>}</style>
 </head>
-<body>
-<div class="d-flex">
-    <nav class="bg-dark text-white p-3" style="min-width:200px; min-height:100vh;">
-        <div class="fs-4 fw-bold mb-4 text-center"><?php echo e($settings['brand_name'] ?? 'Brand');?></div>
-        <ul class="nav flex-column mb-4">
-            <li class="nav-item"><a class="nav-link text-white" href="/admin.php">Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link text-white" href="/admin.php?r=apps.index">Applications</a></li>
-            <li class="nav-item"><a class="nav-link text-white" href="/admin.php?r=depts.index">Departments</a></li>
-              <li class="nav-item"><a class="nav-link text-white" href="/admin.php?r=branding.index">Branding</a></li>
-            <li class="nav-item"><a class="nav-link text-white" href="/admin.php?r=updates.index">Updates</a></li>
+<body class="bg-gray-100 text-gray-800">
+<div class="min-h-screen flex">
+    <nav class="bg-gray-800 text-white w-64 flex flex-col p-6">
+        <div class="text-2xl font-bold mb-8 text-center"><?php echo e($settings['brand_name'] ?? 'Brand');?></div>
+        <ul class="flex-1 space-y-2">
+            <li><a class="block px-3 py-2 rounded hover:bg-gray-700" href="/admin.php">Dashboard</a></li>
+            <li><a class="block px-3 py-2 rounded hover:bg-gray-700" href="/admin.php?r=apps.index">Applications</a></li>
+            <li><a class="block px-3 py-2 rounded hover:bg-gray-700" href="/admin.php?r=depts.index">Departments</a></li>
+            <li><a class="block px-3 py-2 rounded hover:bg-gray-700" href="/admin.php?r=branding.index">Branding</a></li>
+            <li><a class="block px-3 py-2 rounded hover:bg-gray-700" href="/admin.php?r=updates.index">Updates</a></li>
         </ul>
-        <a class="btn btn-outline-light w-100" href="/admin.php?r=auth.logout">Logout</a>
+        <a class="mt-auto block text-center px-3 py-2 rounded bg-gray-700 hover:bg-gray-600" href="/admin.php?r=auth.logout">Logout</a>
     </nav>
-    <main class="flex-grow-1 p-4">
+    <main class="flex-1 p-8">
         <?php echo $content ?? ''; ?>
     </main>
 </div>

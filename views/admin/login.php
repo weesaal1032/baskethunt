@@ -1,16 +1,16 @@
 <?php
 ob_start();
 ?>
-<div class="container mt-5" style="max-width:400px;">
-<h1 class="h4 mb-3">Admin Login</h1>
-<?php if(!empty($error)): ?><div class="alert alert-danger"><?php echo e($error);?></div><?php endif; ?>
-<form method="post">
-    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
-    <div class="mb-3"><input name="email" type="email" class="form-control" placeholder="Email" required></div>
-    <div class="mb-3"><input name="password" type="password" class="form-control" placeholder="Password" required></div>
-    <div class="d-grid mb-3"><button class="btn btn-primary">Login</button></div>
-</form>
-<a href="/admin.php?r=auth.forgot">Forgot password?</a>
+<div class="max-w-sm mx-auto mt-24 bg-white p-6 rounded shadow">
+    <h1 class="text-xl font-semibold mb-4 text-center">Admin Login</h1>
+    <?php if(!empty($error)): ?><div class="mb-4 p-2 rounded bg-red-100 text-red-700"><?php echo e($error);?></div><?php endif; ?>
+    <form method="post" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+        <input name="email" type="email" class="w-full border rounded p-2" placeholder="Email" required>
+        <input name="password" type="password" class="w-full border rounded p-2" placeholder="Password" required>
+        <button class="w-full py-2 rounded text-white bg-[var(--brand)]">Login</button>
+    </form>
+    <div class="text-center mt-4"><a href="/admin.php?r=auth.forgot" class="text-sm text-blue-600 hover:underline">Forgot password?</a></div>
 </div>
 <?php
 $content = ob_get_clean();

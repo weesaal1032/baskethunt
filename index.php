@@ -17,7 +17,7 @@ if ($deptSlug) {
 // Build department selector
 ob_start();
 ?>
-<select id="department" class="form-select">
+<select id="department" class="border rounded p-2">
     <option value="">All Departments</option>
     <?php foreach($depts as $d): ?>
         <option value="<?php echo e($d['slug']);?>" <?php echo $deptSlug===$d['slug']?'selected':'';?>><?php echo e($d['name']);?></option>

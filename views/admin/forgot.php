@@ -1,15 +1,13 @@
 <?php
 ob_start();
 ?>
-<div class="container mt-5" style="max-width:400px;">
-    <h1 class="h4 mb-3">Forgot Password</h1>
-    <?php if(!empty($message)): ?><div class="alert alert-info"><?php echo e($message);?></div><?php endif; ?>
-    <form method="post">
+<div class="max-w-sm mx-auto mt-24 bg-white p-6 rounded shadow">
+    <h1 class="text-xl font-semibold mb-4 text-center">Forgot Password</h1>
+    <?php if(!empty($message)): ?><div class="mb-4 p-2 rounded bg-blue-100 text-blue-700"><?php echo e($message);?></div><?php endif; ?>
+    <form method="post" class="space-y-4">
         <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
-        <div class="mb-3">
-            <input type="email" name="email" class="form-control" placeholder="Email" required>
-        </div>
-        <button class="btn btn-primary w-100">Send Reset Link</button>
+        <input type="email" name="email" class="w-full border rounded p-2" placeholder="Email" required>
+        <button class="w-full py-2 rounded text-white bg-[var(--brand)]">Send Reset Link</button>
     </form>
 </div>
 <?php
