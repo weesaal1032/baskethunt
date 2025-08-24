@@ -38,17 +38,53 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 ?>
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Install</title><script src="https://cdn.tailwindcss.com"></script></head>
-<body class="bg-gray-100 p-8">
-<h1 class="text-2xl mb-4">Basket Hunt Installer</h1>
-<?php if(!empty($error)): ?><div class="text-red-600 mb-4"><?php echo e($error);?></div><?php endif; ?>
-<form method="post" class="space-y-2 max-w-md">
-<input name="db_host" class="border p-2 w-full" placeholder="DB Host" required>
-<input name="db_name" class="border p-2 w-full" placeholder="DB Name" required>
-<input name="db_user" class="border p-2 w-full" placeholder="DB User" required>
-<input name="db_pass" class="border p-2 w-full" placeholder="DB Password" type="password">
-<input name="admin_email" class="border p-2 w-full" placeholder="Admin Email" required>
-<input name="admin_pass" class="border p-2 w-full" placeholder="Admin Password" type="password" required>
-<button class="bg-blue-600 text-white px-4 py-2 rounded">Install</button>
-</form>
-</body></html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Basket Hunt Installer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+    <div class="bg-white shadow-xl rounded-lg w-full max-w-lg p-8">
+        <h1 class="text-3xl font-semibold text-center mb-6">Basket Hunt Setup</h1>
+        <?php if(!empty($error)): ?><div class="bg-red-100 border border-red-300 text-red-700 p-2 rounded mb-4 text-sm"><?php echo e($error);?></div><?php endif; ?>
+        <form method="post" class="space-y-6">
+            <div>
+                <h2 class="text-lg font-medium mb-2">Database</h2>
+                <div class="space-y-2">
+                    <div>
+                        <label class="block text-sm font-medium">DB Host</label>
+                        <input name="db_host" class="border rounded w-full p-2" placeholder="localhost" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">DB Name</label>
+                        <input name="db_name" class="border rounded w-full p-2" placeholder="baskethunt" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">DB User</label>
+                        <input name="db_user" class="border rounded w-full p-2" placeholder="root" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">DB Password</label>
+                        <input name="db_pass" type="password" class="border rounded w-full p-2" placeholder="••••••">
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h2 class="text-lg font-medium mb-2">Admin Account</h2>
+                <div class="space-y-2">
+                    <div>
+                        <label class="block text-sm font-medium">Admin Email</label>
+                        <input name="admin_email" class="border rounded w-full p-2" placeholder="admin@example.com" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Admin Password</label>
+                        <input name="admin_pass" type="password" class="border rounded w-full p-2" placeholder="••••••" required>
+                    </div>
+                </div>
+            </div>
+            <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded">Install</button>
+        </form>
+    </div>
+</body>
+</html>
