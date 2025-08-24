@@ -4,18 +4,22 @@
 <head>
 <meta charset="utf-8">
 <title>Admin - Basket Hunt</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>:root{--brand: <?php echo e($settings['primary_color'] ?? '#4f46e5');?>}</style>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<style>:root{--brand: <?php echo e($settings['primary_color'] ?? '#0d6efd');?>}</style>
 </head>
-<body class="bg-gray-100">
-<div class="flex min-h-screen">
-    <aside class="w-64 bg-gray-800 text-white p-4 space-y-2">
-        <div class="text-2xl font-bold mb-4"><?php echo e($settings['brand_name'] ?? 'Brand');?></div>
-        <nav class="space-y-2">
-            <a href="/admin.php" class="block p-2 rounded hover:bg-gray-700">Dashboard</a>
-        </nav>
-    </aside>
-    <main class="flex-1 p-6">
+<body>
+<div class="d-flex">
+    <nav class="bg-dark text-white p-3" style="min-width:200px; min-height:100vh;">
+        <div class="fs-4 fw-bold mb-4 text-center"><?php echo e($settings['brand_name'] ?? 'Brand');?></div>
+        <ul class="nav flex-column mb-4">
+            <li class="nav-item"><a class="nav-link text-white" href="/admin.php">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link text-white" href="/admin.php?r=apps.index">Applications</a></li>
+            <li class="nav-item"><a class="nav-link text-white" href="/admin.php?r=depts.index">Departments</a></li>
+        </ul>
+        <a class="btn btn-outline-light w-100" href="/admin.php?r=auth.logout">Logout</a>
+    </nav>
+    <main class="flex-grow-1 p-4">
         <?php echo $content ?? ''; ?>
     </main>
 </div>

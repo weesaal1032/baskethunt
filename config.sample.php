@@ -9,4 +9,11 @@ return [
     ],
     'app_key' => '',
     'installed' => false,
+    'smtp' => [
+        'host' => 'smtp.example.com',
+        'port' => 587,
+        'user' => 'user@example.com',
+        'pass' => 'secret',
+        'from' => 'noreply@example.com'
+    ],
 ];

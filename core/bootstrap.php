@@ -18,3 +18,4 @@ require __DIR__.'/db.php';
 require __DIR__.'/helpers.php';
 require __DIR__.'/security.php';
 require __DIR__.'/auth.php';
+require __DIR__.'/mailer.php';

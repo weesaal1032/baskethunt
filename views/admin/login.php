@@ -1,16 +1,17 @@
 <?php
 ob_start();
 ?>
-<div class="max-w-sm mx-auto mt-20 bg-white p-6 rounded-2xl shadow">
-<h1 class="text-xl mb-4">Admin Login</h1>
-<?php if(!empty($error)): ?><div class="text-red-600 mb-2"><?php echo e($error);?></div><?php endif; ?>
+<div class="container mt-5" style="max-width:400px;">
+<h1 class="h4 mb-3">Admin Login</h1>
+<?php if(!empty($error)): ?><div class="alert alert-danger"><?php echo e($error);?></div><?php endif; ?>
 <form method="post">
     <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
-    <input name="email" type="email" class="w-full p-2 border mb-2" placeholder="Email" required>
-    <input name="password" type="password" class="w-full p-2 border mb-4" placeholder="Password" required>
-    <button class="bg-[var(--brand)] text-white px-4 py-2 rounded">Login</button>
+    <div class="mb-3"><input name="email" type="email" class="form-control" placeholder="Email" required></div>
+    <div class="mb-3"><input name="password" type="password" class="form-control" placeholder="Password" required></div>
+    <div class="d-grid mb-3"><button class="btn btn-primary">Login</button></div>
 </form>
+<a href="/admin.php?r=auth.forgot">Forgot password?</a>
 </div>
 <?php
 $content = ob_get_clean();
-require __DIR__.'/layout.php';
+require __DIR__.'/auth_layout.php';
