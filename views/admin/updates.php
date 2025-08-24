@@ -1,5 +1,8 @@
 <?php ob_start(); ?>
 <h1 class="text-2xl mb-4">Updates</h1>
+<?php if (!empty($status)): ?>
+<div class="p-2 mb-4 rounded bg-blue-100 text-blue-700"><?php echo e($status); ?></div>
+<?php endif; ?>
 <form method="post" class="mb-4 space-y-4">
     <?php csrf_field(); ?>
     <div>
@@ -19,7 +22,7 @@
 <form method="post" class="mb-3">
     <?php csrf_field(); ?>
     <button name="update" class="px-4 py-2 rounded text-white bg-[var(--brand)]">Update to Latest</button>
-    </form>
+</form>
 <?php endif; ?>
 <form method="post">
     <?php csrf_field(); ?>

@@ -5,6 +5,9 @@ function csrf_token(): string {
     }
     return $_SESSION['csrf_token'];
 }
+function csrf_field() {
+    echo '<input type="hidden" name="csrf_token" value="'.htmlspecialchars(csrf_token(), ENT_QUOTES).'">';
+}
 function verify_csrf() {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $token = $_POST['csrf_token'] ?? '';

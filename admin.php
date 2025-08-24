@@ -179,6 +179,7 @@ if ($route === 'depts.index') {
 }
 if ($route === 'updates.index') {
     $repo = $settings['repo_url'] ?? '';
+    $status = '';
     $info = function_exists('update_check') ? update_check($repo) : ['error' => 'Updater missing'];
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf();
@@ -188,11 +189,12 @@ if ($route === 'updates.index') {
             $stmt->execute([$repo]);
             $settings['repo_url'] = $repo;
             $info = function_exists('update_check') ? update_check($repo) : ['error' => 'Updater missing'];
+            $status = 'Repository saved';
         } elseif (isset($_POST['update'])) {
-            apply_update($repo);
+            $status = apply_update($repo) ? 'Application updated to latest commit' : 'Update failed';
             $info = update_check($repo);
         } elseif (isset($_POST['rollback'])) {
-            rollback_update();
+            $status = rollback_update() ? 'Rollback complete' : 'No rollback available';
             $info = update_check($repo);
         }
     }

@@ -22,17 +22,25 @@ function update_check($repo) {
 function ensure_repo($repo) {
     if (!is_dir(__DIR__.'/../.git')) {
         shell_exec('git init 2>&1');
-        shell_exec('git remote add origin '.escapeshellarg($repo).' 2>&1');
-    } else {
-        shell_exec('git remote set-url origin '.escapeshellarg($repo).' 2>&1');
     }
+    shell_exec('git remote remove origin 2>/dev/null');
+    shell_exec('git remote add origin '.escapeshellarg($repo).' 2>&1');
 }
 
 function apply_update($repo) {
     ensure_repo($repo);
     $current = current_commit();
-    file_put_contents(__DIR__.'/../last_commit', $current);
-    shell_exec('git fetch origin && git reset --hard origin/main && git clean -df 2>&1');
+    if ($current) {
+        file_put_contents(__DIR__.'/../last_commit', $current);
+    }
+    shell_exec('git fetch origin 2>&1');
+    $has_head = trim(shell_exec('git rev-parse --verify HEAD 2>&1')) !== '';
+    if ($has_head) {
+        shell_exec('git reset --hard origin/main 2>&1');
+    } else {
+        shell_exec('git checkout -b main origin/main 2>&1');
+    }
+    shell_exec('git clean -df 2>&1');
     return current_commit();
 }
 
