@@ -1,5 +1,7 @@
 <?php
 require __DIR__.'/core/bootstrap.php';
+$updateFile = __DIR__.'/core/update.php';
+if (file_exists($updateFile)) require_once $updateFile;
 $pdo = db();
 $route = $_GET['r'] ?? 'dashboard.index';
 $settings = $pdo->query('SELECT * FROM settings WHERE id=1')->fetch() ?: [];
@@ -173,6 +175,21 @@ if ($route === 'branding.index') {
 if ($route === 'depts.index') {
     $depts = $pdo->query('SELECT * FROM departments ORDER BY sort_order')->fetchAll();
     require __DIR__.'/views/admin/depts_index.php';
+    exit;
+}
+if ($route === 'updates.index') {
+    $info = function_exists('update_check') ? update_check() : ['error' => 'Updater missing'];
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        verify_csrf();
+        if (isset($_POST['update'])) {
+            apply_update();
+            $info = update_check();
+        } elseif (isset($_POST['rollback'])) {
+            rollback_update();
+            $info = update_check();
+        }
+    }
+    require __DIR__.'/views/admin/updates.php';
     exit;
 }
 http_response_code(404);

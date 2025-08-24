@@ -17,6 +17,7 @@
             <li class="nav-item"><a class="nav-link text-white" href="/admin.php?r=apps.index">Applications</a></li>
             <li class="nav-item"><a class="nav-link text-white" href="/admin.php?r=depts.index">Departments</a></li>
               <li class="nav-item"><a class="nav-link text-white" href="/admin.php?r=branding.index">Branding</a></li>
+            <li class="nav-item"><a class="nav-link text-white" href="/admin.php?r=updates.index">Updates</a></li>
         </ul>
         <a class="btn btn-outline-light w-100" href="/admin.php?r=auth.logout">Logout</a>
     </nav>
