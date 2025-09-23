@@ -1,0 +1,1 @@
+01 | Scaffold Laravel 11 CallHub application | Replaced legacy PHP codebase with Laravel 11 skeleton, domain repositories, and Tailwind layout.
