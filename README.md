@@ -34,3 +34,31 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 ## Modules
 
 Domains are available under `app/Domains/*` with corresponding repository interfaces in `app/Repositories/Contracts` and Eloquent stubs in `app/Repositories/Eloquent`.
+
+## Schema Diagram
+
+```
+users (id, name, email*, role, status, password)
+  ├─< calls.agent_id
+  └─< qa_scores.scored_by
+
+providers (id, name*)
+  └─< calls.provider_id
+
+calls (id, provider_call_id*, provider_id, agent_id, direction, from_number, to_number, started_at)
+  ├─< recordings.call_id
+  └─< qa_scores.call_id
+
+recordings (id, call_id, storage_backend, status)
+  └─1 transcripts.recording_id
+
+transcripts (id, recording_id, engine, status)
+
+qa_scores (id, call_id, scored_by)
+
+jobs (id, type, status, run_at)
+
+audits (id, user_id, subject_type, subject_id)
+```
+
+The database seeder provisions a default administrator account (`CALLHUB_ADMIN_EMAIL`) and a placeholder provider for integration testing.

@@ -9,13 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('jobs', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->string('queue')->index();
-            $table->longText('payload');
-            $table->unsignedTinyInteger('attempts');
-            $table->unsignedInteger('reserved_at')->nullable();
-            $table->unsignedInteger('available_at');
-            $table->unsignedInteger('created_at');
+            $table->id();
+            $table->enum('type', ['poll_calls', 'download', 'transcribe', 'backfill']);
+            $table->json('payload');
+            $table->enum('status', ['queued', 'running', 'failed', 'done'])->default('queued');
+            $table->unsignedInteger('attempts')->default(0);
+            $table->timestamp('run_at')->nullable()->index();
+            $table->text('last_error')->nullable();
+            $table->timestamps();
+
+            $table->index(['status', 'type']);
         });
     }
 
