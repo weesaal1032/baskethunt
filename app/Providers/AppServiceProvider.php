@@ -28,6 +28,8 @@ use App\Repositories\Eloquent\RecordingsRepository;
 use App\Repositories\Eloquent\SettingsRepository;
 use App\Repositories\Eloquent\StorageRepository;
 use App\Repositories\Eloquent\TranscriptsRepository;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -51,6 +53,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Bootstrap application services.
+        View::composer('layouts.base', function ($view): void {
+            $view->with('installerLocked', File::exists(storage_path('installed.flag')));
+        });
     }
 }

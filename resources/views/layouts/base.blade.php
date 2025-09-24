@@ -34,7 +34,9 @@
                     <span>{{ config('callhub.ui.branding') }}</span>
                 </a>
                 <div class="flex items-center gap-4 text-sm">
-                    <a href="{{ route('install.index') }}" class="hover:text-brand-500">Installer</a>
+                    @unless($installerLocked ?? false)
+                        <a href="{{ route('install.index') }}" class="hover:text-brand-500">Installer</a>
+                    @endunless
                     <a href="{{ route('admin.dashboard') }}" class="hover:text-brand-500">Admin</a>
                     <a href="{{ route('auth.login') }}" class="hover:text-brand-500">Auth</a>
                     <button type="button" class="rounded-full border border-slate-300 dark:border-slate-600 px-3 py-1 flex items-center gap-2" @click="dark = !dark">

@@ -14,6 +14,7 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
    cp .env.example .env
    php artisan key:generate
    ```
+   _Production installs can alternatively run the browser installer at `/install` to generate the `.env` file._
 3. **Set permissions for storage**
    ```bash
    php artisan storage:link
@@ -28,8 +29,17 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
    php artisan serve
    ```
 6. **Schedule and queue workers (cPanel friendly)**
-   - Queue worker cron: `* * * * * cd /path/to/callhub && php artisan queue:work --stop-when-empty`
-   - Schedule runner cron: `* * * * * cd /path/to/callhub && php artisan schedule:run`
+   - Queue worker cron: `* * * * * cd /path/to/callhub && php artisan queue:work --queue=default --sleep=3 --tries=3 >> /path/to/callhub/storage/logs/queue-worker.log 2>&1`
+   - Schedule runner cron: `* * * * * cd /path/to/callhub && php artisan schedule:run >> /path/to/callhub/storage/logs/scheduler.log 2>&1`
+
+## Installer
+
+- Navigate to `/install` after uploading the project to run the four-step wizard: system checks, database connection & migrations,
+  administrator provisioning, and application configuration.
+- The wizard writes `.env`, seeds the default provider, and places `storage/installed.flag`. Subsequent requests to `/install`
+  respond with `403` until the flag is removed manually.
+- Final step surfaces production-ready cPanel Cron commands for the scheduler and queue worker. Update the project path before
+  saving the jobs in your hosting panel.
 
 ## Authentication & RBAC
 

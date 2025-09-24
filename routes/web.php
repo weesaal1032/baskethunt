@@ -12,7 +12,7 @@ Route::get('/', function () {
     return redirect()->route('admin.dashboard');
 });
 
-Route::prefix('install')->name('install.')->group(function () {
+Route::prefix('install')->name('install.')->middleware('installer.unlocked')->group(function () {
     Route::get('/', [InstallerController::class, 'index'])->name('index');
     Route::post('/', [InstallerController::class, 'store'])->name('store');
 });

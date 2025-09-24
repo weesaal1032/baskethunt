@@ -2,6 +2,7 @@
 
 namespace App\Http;
 
+use App\Http\Middleware\EnsureInstallerIsUnlocked;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EncryptCookies;
 use App\Http\Middleware\PreventRequestsDuringMaintenance;
@@ -66,5 +67,6 @@ class Kernel extends HttpKernel
         'throttle' => ThrottleRequests::class,
         'verified' => EnsureEmailIsVerified::class,
         'role' => EnsureUserHasRole::class,
+        'installer.unlocked' => EnsureInstallerIsUnlocked::class,
     ];
 }
