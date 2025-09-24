@@ -50,7 +50,7 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 
 ## Settings
 
-- Admins can update the site name, timezone, and canonical application URL at `/admin/settings/general`. The form persists to the `settings` table through `SettingsService`, refreshing runtime configuration immediately.
+- Admins can configure general metadata, telephony provider credentials, storage backends, transcription engines, notification channels, and privacy retention windows at `/admin/settings/general`. Values persist to the `settings` table via `SettingsService`, refresh runtime configuration, and mask stored secrets.
 - The global `setting('app.name')` helper resolves configuration with database values first and falls back to `.env`/config, simplifying consumption inside Blade templates, services, and jobs.
 
 ## Modules
