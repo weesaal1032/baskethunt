@@ -1,2 +1,3 @@
 01 | Scaffold Laravel 11 CallHub application | Replaced legacy PHP codebase with Laravel 11 skeleton, domain repositories, and Tailwind layout.
 02 | Laravel 11 modular scaffold | Added domain routes, repositories, migrations, and Tailwind layout
+03 | Authentication, OTP, and RBAC | Added email/password login with optional OTP, RBAC middleware, and authorization policies
