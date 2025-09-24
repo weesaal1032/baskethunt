@@ -9,3 +9,4 @@
 09 | Telephony call ingestion and polling | Added scheduled poll:calls command, ingestion service, recording download queue, and health telemetry.
 10 | Recording download worker | Streamed downloads with FFmpeg MP3 conversion, waveform capture, and transcription enqueue.
 11 | Whisper transcription pipeline | Added Whisper API/local drivers, transcription job runner integration, and admin caps.
+12 | Admin operations dashboard | Aggregated 24-hour ingestion, failure, queue, and storage telemetry with disk alerts and log viewer.
