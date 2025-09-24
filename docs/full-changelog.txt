@@ -2,3 +2,4 @@
 02 | Laravel 11 modular scaffold | Added domain routes, repositories, migrations, and Tailwind layout
 03 | Authentication, OTP, and RBAC | Added email/password login with optional OTP, RBAC middleware, and authorization policies
 04 | Installer Wizard | Added four-step system checks, DB provisioning, admin setup, env writing, and install lockout
+05 | Settings module infrastructure | Added database-backed settings storage, admin form for site metadata, and runtime helper.
