@@ -28,9 +28,14 @@ use App\Repositories\Eloquent\RecordingsRepository;
 use App\Repositories\Eloquent\SettingsRepository;
 use App\Repositories\Eloquent\StorageRepository;
 use App\Repositories\Eloquent\TranscriptsRepository;
+use App\Services\Providers\GenericRestClient;
+use App\Services\Providers\TelephonyClientInterface;
+use App\Services\Settings\SettingsService;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Psr\Log\LoggerInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -49,6 +54,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AuditRepositoryInterface::class, AuditRepository::class);
         $this->app->bind(StorageRepositoryInterface::class, StorageRepository::class);
         $this->app->bind(HealthRepositoryInterface::class, HealthRepository::class);
+
+        $this->app->bind(TelephonyClientInterface::class, function ($app) {
+            return new GenericRestClient(
+                $app->make(HttpFactory::class),
+                $app->make(SettingsService::class),
+                $app->make(LoggerInterface::class),
+            );
+        });
     }
 
     public function boot(): void

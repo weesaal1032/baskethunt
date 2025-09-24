@@ -33,9 +33,15 @@ return [
     'telephony' => [
         'base_url' => env('CALLHUB_TELEPHONY_BASE_URL'),
         'auth_type' => env('CALLHUB_TELEPHONY_AUTH', 'header'),
+        'api_key' => env('CALLHUB_TELEPHONY_API_KEY'),
         'pagination_size' => env('CALLHUB_TELEPHONY_PAGINATION', 100),
         'rate_limit' => env('CALLHUB_TELEPHONY_RATE_LIMIT'),
         'poll_window_days' => env('CALLHUB_TELEPHONY_POLL_WINDOW', 7),
+        'headers' => [],
+        'query' => [],
+        'mapping' => [],
+        'calls_endpoint' => '/calls',
+        'recording_endpoint' => '/calls/{callId}/recording',
     ],
 
     'storage' => [
