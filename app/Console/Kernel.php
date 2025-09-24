@@ -9,7 +9,7 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        // Define scheduled tasks, including transcription checks and health reporting.
+        $schedule->command('poll:calls')->everyFiveMinutes()->withoutOverlapping();
     }
 
     protected function commands(): void

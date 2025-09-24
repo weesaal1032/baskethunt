@@ -58,6 +58,12 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - `TelephonyClientInterface` models call retrieval and recording URL lookups. The default `GenericRestClient` honours admin-configured base URLs, headers, query parameters, pagination size, and rate-limit guidance with exponential backoff on `429`/`5xx` responses.
 - Admins can map remote payload fields to CallHub attributes, customise request metadata, and run a live preview from `/admin/providers/telephony/mapping`. Preview results surface one page of calls and any continuation cursor without exposing shared secrets in logs.
 
+## Call Ingestion
+
+- The `poll:calls` Artisan command queries the configured telephony API for the trailing poll window, honours saved cursors, and upserts calls and associated recordings without duplication.
+- Successful polling queues `DownloadRecordingJob` records on the `recordings` queue and records job metadata in the domain `jobs` table; the scheduler triggers this command every five minutes by default.
+- Health checks at `/health/status` expose the timestamp of the last successful poll for observability dashboards.
+
 ## Recording Storage
 
 - `StorageService` orchestrates Local and S3 backends through dedicated drivers. Local recordings are written under `storage/app/recordings/YYYY/MM/DD/<provider_call_id>.mp3` while the S3 driver keeps objects private and issues temporary signed URLs for playback controllers.
