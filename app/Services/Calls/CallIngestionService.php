@@ -174,7 +174,7 @@ class CallIngestionService
         $job->run_at = CarbonImmutable::now();
         $job->save();
 
-        DownloadRecordingJob::dispatch($recording->id)->onQueue('recordings');
+        DownloadRecordingJob::dispatch($recording->id, $job->id)->onQueue('recordings');
 
         return true;
     }

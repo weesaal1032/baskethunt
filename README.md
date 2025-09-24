@@ -30,6 +30,7 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
    ```
 6. **Schedule and queue workers (cPanel friendly)**
    - Queue worker cron: `* * * * * cd /path/to/callhub && php artisan queue:work --queue=default --sleep=3 --tries=3 >> /path/to/callhub/storage/logs/queue-worker.log 2>&1`
+   - Domain job worker cron: `* * * * * cd /path/to/callhub && php artisan jobs:run --once --max=10 >> /path/to/callhub/storage/logs/domain-worker.log 2>&1`
    - Schedule runner cron: `* * * * * cd /path/to/callhub && php artisan schedule:run >> /path/to/callhub/storage/logs/scheduler.log 2>&1`
 
 ## Installer
@@ -68,6 +69,7 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 
 - `StorageService` orchestrates Local and S3 backends through dedicated drivers. Local recordings are written under `storage/app/recordings/YYYY/MM/DD/<provider_call_id>.mp3` while the S3 driver keeps objects private and issues temporary signed URLs for playback controllers.
 - A migration helper moves existing local recordings to S3 (and cleans up the source copy) when administrators switch the preferred backend—no additional code changes required.
+- Recording downloads validate remote payload size, compute SHA-256 checksums, optionally transcode audio to MP3 via FFmpeg (`FFMPEG_BINARY`), and persist lightweight waveform JSON for UI rendering before enqueueing downstream transcription work.
 
 ## Modules
 

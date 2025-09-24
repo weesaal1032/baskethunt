@@ -55,6 +55,10 @@ return [
         ],
     ],
 
+    'media' => [
+        'ffmpeg_binary' => env('FFMPEG_BINARY', 'ffmpeg'),
+    ],
+
     'transcription' => [
         'engine' => env('CALLHUB_TRANSCRIPTION_DRIVER', 'whisper_api'),
         'api_key' => env('WHISPER_API_KEY'),
