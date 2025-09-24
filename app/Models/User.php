@@ -39,4 +39,15 @@ class User extends Authenticatable
     {
         return $this->hasMany(QaScore::class, 'scored_by');
     }
+
+    public function otpTokens(): HasMany
+    {
+        return $this->hasMany(UserOtpToken::class);
+    }
+
+    public function hasRole(string ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
+    }
+
 }

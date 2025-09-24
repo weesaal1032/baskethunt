@@ -24,5 +24,9 @@ return [
 
     'security' => [
         'installation_locked' => env('CALLHUB_INSTALL_LOCKED', false),
+        'email_otp' => [
+            'enabled' => env('CALLHUB_EMAIL_OTP', false),
+            'expiry_minutes' => env('CALLHUB_EMAIL_OTP_EXPIRY', 10),
+        ],
     ],
 ];

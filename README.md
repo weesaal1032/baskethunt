@@ -31,6 +31,13 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
    - Queue worker cron: `* * * * * cd /path/to/callhub && php artisan queue:work --stop-when-empty`
    - Schedule runner cron: `* * * * * cd /path/to/callhub && php artisan schedule:run`
 
+## Authentication & RBAC
+
+- Email and password authentication is provided via `/auth/login` with password reset flows under `/auth/forgot-password` and `/auth/reset-password/{token}`.
+- Optional email OTP enforcement can be toggled with `CALLHUB_EMAIL_OTP` (default `false`) and expiration configured via `CALLHUB_EMAIL_OTP_EXPIRY` (minutes).
+- Role-aware middleware aliases (`role:admin`, `role:qa`, `role:lead`, `role:readonly`) gate sensitive routes; policies guard access to recordings, transcripts, and QA scoring data.
+- OTP codes are single-use, expire quickly, and are delivered via the default mail channel.
+
 ## Modules
 
 Domains are available under `app/Domains/*` with corresponding repository interfaces in `app/Repositories/Contracts` and Eloquent stubs in `app/Repositories/Eloquent`.
