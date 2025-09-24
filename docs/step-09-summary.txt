@@ -1,0 +1,56 @@
+Step Metadata
+Step number: 09
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Implemented the telephony call ingestion pipeline that reuses admin-defined provider mappings to fetch paginated call data, upsert call records, enqueue recording downloads, and persist polling cursors so scheduled executions remain idempotent and gap free.
+
+Files Created / Modified / Deleted
+Added app/Services/Calls/CallIngestionService.php and its CallIngestionResult value object to orchestrate paging, upserts, and download queuing; introduced app/Console/Commands/PollCallsCommand.php plus scheduler wiring in app/Console/Kernel.php; created app/Jobs/DownloadRecordingJob.php as the recordings queue placeholder; updated routes/health.php and README.md to expose last poll timestamps; extended database/factories/ProviderFactory.php and tests/Feature/Console/PollCallsCommandTest.php alongside supporting seed updates, .env.example, and doc changes.
+
+Data Model & Migrations (if any)
+No schema changes were required; the service stores metadata via existing calls, recordings, jobs, queue_jobs, and settings tables.
+
+Routes, Controllers, Commands
+Registered the poll:calls Artisan command and scheduled it to run every five minutes without overlapping executions; leveraged the existing /health/status route to publish telephony_last_poll_at via the SettingsService.
+
+Services, Jobs, and Algorithms
+CallIngestionService drives cursor-aware paging with loop detection, resolves provider and mapping metadata from persisted settings, executes transactional upserts to maintain call and recording rows, deduplicates download jobs, persists poll cursors/last run timestamps, and dispatches DownloadRecordingJob payloads onto the recordings queue.
+
+Configuration & Environment
+Expanded .env.example and README guidance to document telephony polling configuration, including poll window defaults, cursor persistence keys, queue usage, and observability expectations managed by SettingsService fallbacks.
+
+Dependencies & Libraries
+Relies solely on existing Laravel components (HTTP client, Carbon, queue dispatcher, database transactions); no new composer or npm packages were introduced.
+
+UI/UX Notes (if applicable)
+No new user interface elements shipped; ingestion behavior surfaces indirectly through health telemetry and admin settings already in place.
+
+Security & Compliance
+Polling sanitizes cursor loops, confines recording downloads to RBAC-protected queues, stores provider identifiers and cursors in the secure settings store, and ensures exceptions are reported via the framework handler without leaking credentials to console output.
+
+Performance & Scalability
+Cursor pagination with exponential loop detection prevents runaway processing, transactional upserts avoid duplicate rows, and background download queuing keeps ingestion responsive even under large call volumes.
+
+Observability
+The health endpoint now exposes telephony_last_poll_at for dashboards, ingestion logs cursor progress and parsing failures, and queued download jobs provide visibility into downstream processing.
+
+Testing & Verification
+Static lint checks (php -l) were executed for PollCallsCommand, CallIngestionService, and DownloadRecordingJob; composer install was attempted but blocked by an upstream pest/phpunit constraint conflict, preventing full Pest execution in the container.
+
+Rollback / Remediation
+To revert, remove the poller command, ingestion service, download job scaffold, scheduler entry, and health telemetry keys; clear telephony.provider.* settings to drop stored cursors and last poll metadata.
+
+Known Limitations & Open Questions
+Recording download job logic remains stubbed, ingestion assumes a single active provider configuration, and multi-tenant cursor storage is not yet implemented.
+
+Next-Step Preview
+Implement the recording downloader pipeline against the storage service, expand telemetry around ingestion retries, and surface admin dashboards summarizing ingestion metrics.
+
+Glossary for New Terms Introduced
+CallIngestionService: Application service that pages the telephony provider, persists call metadata, and queues downstream work.
+telephony_last_poll_at: Health payload attribute indicating the most recent successful polling timestamp captured in settings.
+
+References
+See app/Services/Calls/CallIngestionService.php, app/Console/Commands/PollCallsCommand.php, routes/health.php, and README.md “Call Ingestion” details for implementation specifics and operator guidance.
