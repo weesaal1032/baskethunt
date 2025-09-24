@@ -4,3 +4,4 @@
 04 | Installer Wizard | Added four-step system checks, DB provisioning, admin setup, env writing, and install lockout
 05 | Settings module infrastructure | Added database-backed settings storage, admin form for site metadata, and runtime helper.
 06 | Expanded admin settings coverage | Added multi-tab admin form with telephony, storage, transcription, notification, and privacy persistence.
+07 | Storage backend drivers | Added pluggable storage service with local/S3 drivers, migrations utility, and configuration/docs updates.
