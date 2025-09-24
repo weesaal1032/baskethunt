@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\OtpController;
@@ -17,8 +18,15 @@ Route::prefix('install')->name('install.')->middleware('installer.unlocked')->gr
     Route::post('/', [InstallerController::class, 'store'])->name('store');
 });
 
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin,lead'])->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
+    Route::middleware('role:admin,lead')->group(function (): void {
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    });
+
+    Route::middleware('role:admin')->group(function (): void {
+        Route::get('settings/general', [SettingsController::class, 'edit'])->name('settings.general');
+        Route::post('settings/general', [SettingsController::class, 'update'])->name('settings.general.update');
+    });
 });
 
 Route::prefix('auth')->name('auth.')->group(function () {

@@ -48,6 +48,11 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - Role-aware middleware aliases (`role:admin`, `role:qa`, `role:lead`, `role:readonly`) gate sensitive routes; policies guard access to recordings, transcripts, and QA scoring data.
 - OTP codes are single-use, expire quickly, and are delivered via the default mail channel.
 
+## Settings
+
+- Admins can update the site name, timezone, and canonical application URL at `/admin/settings/general`. The form persists to the `settings` table through `SettingsService`, refreshing runtime configuration immediately.
+- The global `setting('app.name')` helper resolves configuration with database values first and falls back to `.env`/config, simplifying consumption inside Blade templates, services, and jobs.
+
 ## Modules
 
 Domains are available under `app/Domains/*` with corresponding repository interfaces in `app/Repositories/Contracts` and Eloquent stubs in `app/Repositories/Eloquent`.

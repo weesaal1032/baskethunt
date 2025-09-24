@@ -4,5 +4,7 @@ namespace App\Repositories\Contracts;
 
 interface SettingsRepositoryInterface extends RepositoryInterface
 {
-    // Domain-specific queries for Settings will live here.
+    public function findByKey(string $key): ?\App\Models\Settings;
+
+    public function upsert(string $key, ?string $value): void;
 }

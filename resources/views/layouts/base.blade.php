@@ -38,7 +38,17 @@
                         <a href="{{ route('install.index') }}" class="hover:text-brand-500">Installer</a>
                     @endunless
                     <a href="{{ route('admin.dashboard') }}" class="hover:text-brand-500">Admin</a>
-                    <a href="{{ route('auth.login') }}" class="hover:text-brand-500">Auth</a>
+                    @auth
+                        @if (auth()->user()?->role === 'admin')
+                            <a href="{{ route('admin.settings.general') }}" class="hover:text-brand-500">Settings</a>
+                        @endif
+                        <form method="POST" action="{{ route('auth.logout') }}" class="inline">
+                            @csrf
+                            <button type="submit" class="hover:text-brand-500">Logout</button>
+                        </form>
+                    @else
+                        <a href="{{ route('auth.login') }}" class="hover:text-brand-500">Auth</a>
+                    @endauth
                     <button type="button" class="rounded-full border border-slate-300 dark:border-slate-600 px-3 py-1 flex items-center gap-2" @click="dark = !dark">
                         <span class="text-xs uppercase tracking-wide">Dark Mode</span>
                         <span x-text="dark ? 'On' : 'Off'"></span>
