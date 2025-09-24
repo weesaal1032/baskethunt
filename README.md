@@ -53,6 +53,11 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - Admins can configure general metadata, telephony provider credentials, storage backends, transcription engines, notification channels, and privacy retention windows at `/admin/settings/general`. Values persist to the `settings` table via `SettingsService`, refresh runtime configuration, and mask stored secrets.
 - The global `setting('app.name')` helper resolves configuration with database values first and falls back to `.env`/config, simplifying consumption inside Blade templates, services, and jobs.
 
+## Recording Storage
+
+- `StorageService` orchestrates Local and S3 backends through dedicated drivers. Local recordings are written under `storage/app/recordings/YYYY/MM/DD/<provider_call_id>.mp3` while the S3 driver keeps objects private and issues temporary signed URLs for playback controllers.
+- A migration helper moves existing local recordings to S3 (and cleans up the source copy) when administrators switch the preferred backend—no additional code changes required.
+
 ## Modules
 
 Domains are available under `app/Domains/*` with corresponding repository interfaces in `app/Repositories/Contracts` and Eloquent stubs in `app/Repositories/Eloquent`.
