@@ -77,6 +77,12 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - Admin settings expose the Whisper API timeout, CLI binary/model/threads/timeout inputs, and a daily transcription minutes cap to throttle spending; language preferences follow the saved default and persist per transcript.
 - Domain jobs record success and retry metadata, while the worker backfills transcripts into the `transcripts` table with `processing`/`ready` status tracking for observability dashboards.
 
+## Admin Dashboard & Health
+
+- `/admin` now surfaces an operations overview with rolling 24-hour metrics for call ingestion, recording downloads, transcription completions, and job failures alongside queue depth and storage utilisation.
+- Alerts raise when local disk consumption exceeds 80% or when recent job failures require investigation; admins can drill into the bundled log viewer at `/admin/logs`.
+- Storage backend usage is summarised per driver, helping operators identify when to migrate recordings to S3 and ensuring health dashboards reflect the most recent telephony poll timestamp.
+
 ## Modules
 
 Domains are available under `app/Domains/*` with corresponding repository interfaces in `app/Repositories/Contracts` and Eloquent stubs in `app/Repositories/Eloquent`.

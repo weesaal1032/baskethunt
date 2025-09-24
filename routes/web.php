@@ -25,6 +25,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     });
 
     Route::middleware('role:admin')->group(function (): void {
+        Route::get('logs', [DashboardController::class, 'logs'])->name('logs');
         Route::get('settings/general', [SettingsController::class, 'edit'])->name('settings.general');
         Route::post('settings/general', [SettingsController::class, 'update'])->name('settings.general.update');
 
