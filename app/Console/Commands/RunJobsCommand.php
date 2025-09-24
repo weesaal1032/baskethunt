@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Jobs\DownloadRecordingJob;
+use App\Jobs\TranscribeRecordingJob;
 use App\Models\Job as DomainJob;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
@@ -37,33 +38,26 @@ class RunJobsCommand extends Command
             }
 
             $payload = $job->payload ?? [];
-            $recordingId = (int) ($payload['recording_id'] ?? 0);
 
-            if ($recordingId <= 0) {
-                $job->status = 'failed';
-                $job->last_error = 'Invalid recording identifier in payload.';
-                $job->run_at = CarbonImmutable::now();
-                $job->save();
-                $this->warn(sprintf('Job %d missing recording_id, marking as failed.', $job->id));
-            } else {
-                try {
-                    DownloadRecordingJob::dispatchSync($recordingId, $job->id);
+            try {
+                if ($this->executeJob($job, $payload)) {
                     ++$processed;
-                } catch (Throwable $throwable) {
-                    $job->refresh();
-
-                    if ($job->status === 'running') {
-                        $job->status = 'failed';
-                        $job->last_error = $throwable->getMessage();
-                        $job->run_at = CarbonImmutable::now();
-                        $job->save();
-                    }
-
-                    Log::error('Domain job execution failed.', [
-                        'job_id' => $job->id,
-                        'message' => $throwable->getMessage(),
-                    ]);
                 }
+            } catch (Throwable $throwable) {
+                $job->refresh();
+
+                if ($job->status === 'running') {
+                    $job->status = 'failed';
+                    $job->last_error = $throwable->getMessage();
+                    $job->run_at = CarbonImmutable::now();
+                    $job->save();
+                }
+
+                Log::error('Domain job execution failed.', [
+                    'job_id' => $job->id,
+                    'type' => $job->type,
+                    'message' => $throwable->getMessage(),
+                ]);
             }
 
             if ($once) {
@@ -82,11 +76,12 @@ class RunJobsCommand extends Command
     {
         return DB::transaction(function () {
             $job = DomainJob::query()
-                ->where('type', 'download')
+                ->whereIn('type', ['download', 'transcribe'])
                 ->where('status', 'queued')
                 ->where(function ($query) {
                     $query->whereNull('run_at')->orWhere('run_at', '<=', CarbonImmutable::now());
                 })
+                ->orderByRaw("FIELD(type, 'download', 'transcribe')")
                 ->orderBy('run_at')
                 ->orderBy('id')
                 ->lockForUpdate()
@@ -100,5 +95,55 @@ class RunJobsCommand extends Command
 
             return $job;
         }, 3);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function executeJob(DomainJob $job, array $payload): bool
+    {
+        $recordingId = (int) ($payload['recording_id'] ?? 0);
+
+        if ($recordingId <= 0) {
+            $job->status = 'failed';
+            $job->last_error = 'Invalid recording identifier in payload.';
+            $job->run_at = CarbonImmutable::now();
+            $job->save();
+            $this->warn(sprintf('Job %d missing recording_id, marking as failed.', $job->id));
+
+            return false;
+        }
+
+        if ($job->type === 'download') {
+            DownloadRecordingJob::dispatchSync($recordingId, $job->id);
+
+            return true;
+        }
+
+        if ($job->type === 'transcribe') {
+            $engine = (string) ($payload['engine'] ?? '');
+            $language = $payload['language'] ?? null;
+
+            if ($engine === '') {
+                $job->status = 'failed';
+                $job->last_error = 'Transcription job missing engine setting.';
+                $job->run_at = CarbonImmutable::now();
+                $job->save();
+                $this->warn(sprintf('Transcription job %d missing engine, marking as failed.', $job->id));
+
+                return false;
+            }
+
+            TranscribeRecordingJob::dispatchSync($recordingId, $engine, $job->id, is_string($language) ? $language : null);
+
+            return true;
+        }
+
+        $job->status = 'failed';
+        $job->last_error = sprintf('Unsupported job type [%s].', $job->type);
+        $job->run_at = CarbonImmutable::now();
+        $job->save();
+
+        return false;
     }
 }

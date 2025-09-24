@@ -65,6 +65,11 @@ return [
         'cli_path' => env('WHISPER_CLI_BINARY'),
         'language' => env('CALLHUB_TRANSCRIPTION_LANGUAGE', 'en'),
         'max_concurrent' => env('CALLHUB_TRANSCRIPTION_MAX_CONCURRENT', 2),
+        'api_timeout' => env('WHISPER_API_TIMEOUT', 30),
+        'cli_model' => env('WHISPER_CLI_MODEL', 'base.en'),
+        'cli_threads' => env('WHISPER_CLI_THREADS', 4),
+        'cli_timeout' => env('WHISPER_CLI_TIMEOUT', 600),
+        'daily_limit_minutes' => env('CALLHUB_TRANSCRIPTION_DAILY_LIMIT', 0),
     ],
 
     'notifications' => [

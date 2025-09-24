@@ -169,14 +169,30 @@
                     <label for="transcription_api_key" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Whisper API Key</label>
                     <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Leave blank to keep the configured key.</p>
                     <input id="transcription_api_key" name="transcription_api_key" type="password" autocomplete="new-password" placeholder="{{ $form['transcription']['api_key_set'] ? 'Configured' : 'sk-...' }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                    <label for="transcription_api_timeout" class="mt-4 block text-sm font-medium text-slate-700 dark:text-slate-300">API Timeout (seconds)</label>
+                    <input id="transcription_api_timeout" name="transcription_api_timeout" type="number" min="5" max="600" value="{{ old('transcription_api_timeout', $form['transcription']['api_timeout']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
                 </div>
 
                 <div x-show="transcriptionEngine === 'whisper_cli'" x-cloak>
                     <label for="transcription_cli_path" class="block text-sm font-medium text-slate-700 dark:text-slate-300">whisper.cpp Binary Path</label>
                     <input id="transcription_cli_path" name="transcription_cli_path" type="text" value="{{ old('transcription_cli_path', $form['transcription']['cli_path']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                    <div class="mt-4 grid gap-4 md:grid-cols-3">
+                        <div>
+                            <label for="transcription_cli_model" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Model Identifier</label>
+                            <input id="transcription_cli_model" name="transcription_cli_model" type="text" value="{{ old('transcription_cli_model', $form['transcription']['cli_model']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
+                        </div>
+                        <div>
+                            <label for="transcription_cli_threads" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Threads</label>
+                            <input id="transcription_cli_threads" name="transcription_cli_threads" type="number" min="1" max="64" value="{{ old('transcription_cli_threads', $form['transcription']['cli_threads']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
+                        </div>
+                        <div>
+                            <label for="transcription_cli_timeout" class="block text-sm font-medium text-slate-700 dark:text-slate-300">CLI Timeout (seconds)</label>
+                            <input id="transcription_cli_timeout" name="transcription_cli_timeout" type="number" min="60" max="7200" value="{{ old('transcription_cli_timeout', $form['transcription']['cli_timeout']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="grid gap-6 md:grid-cols-2">
+                <div class="grid gap-6 md:grid-cols-3">
                     <div>
                         <label for="transcription_language" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Default Language</label>
                         <input id="transcription_language" name="transcription_language" type="text" value="{{ old('transcription_language', $form['transcription']['language']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
@@ -184,6 +200,11 @@
                     <div>
                         <label for="transcription_max_concurrent" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Max Concurrent Jobs</label>
                         <input id="transcription_max_concurrent" name="transcription_max_concurrent" type="number" min="1" value="{{ old('transcription_max_concurrent', $form['transcription']['max_concurrent']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
+                    </div>
+                    <div>
+                        <label for="transcription_daily_limit_minutes" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Daily Usage Cap (minutes)</label>
+                        <input id="transcription_daily_limit_minutes" name="transcription_daily_limit_minutes" type="number" min="0" max="1440" value="{{ old('transcription_daily_limit_minutes', $form['transcription']['daily_limit_minutes']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Zero disables the cap.</p>
                     </div>
                 </div>
             </div>

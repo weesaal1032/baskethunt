@@ -14,11 +14,14 @@ return [
             'label' => 'Local whisper.cpp',
             'binary' => env('WHISPER_CLI_BINARY', '/usr/local/bin/whisper'),
             'model' => env('WHISPER_CLI_MODEL', 'base.en'),
+            'threads' => env('WHISPER_CLI_THREADS', 4),
+            'timeout' => env('WHISPER_CLI_TIMEOUT', 600),
         ],
     ],
 
     'options' => [
         'max_duration_seconds' => env('CALLHUB_TRANSCRIPTION_MAX_DURATION', 7200),
         'enable_diarization' => env('CALLHUB_TRANSCRIPTION_DIARIZATION', true),
+        'daily_limit_minutes' => env('CALLHUB_TRANSCRIPTION_DAILY_LIMIT', 0),
     ],
 ];

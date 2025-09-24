@@ -71,6 +71,12 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - A migration helper moves existing local recordings to S3 (and cleans up the source copy) when administrators switch the preferred backend—no additional code changes required.
 - Recording downloads validate remote payload size, compute SHA-256 checksums, optionally transcode audio to MP3 via FFmpeg (`FFMPEG_BINARY`), and persist lightweight waveform JSON for UI rendering before enqueueing downstream transcription work.
 
+## Transcription Pipeline
+
+- `TranscribeRecordingJob` converts stored audio into transcripts using the configured Whisper API or local `whisper.cpp` binary through the `TranscriptionService`, capturing full-text output plus time-aligned segments for the QA interface.
+- Admin settings expose the Whisper API timeout, CLI binary/model/threads/timeout inputs, and a daily transcription minutes cap to throttle spending; language preferences follow the saved default and persist per transcript.
+- Domain jobs record success and retry metadata, while the worker backfills transcripts into the `transcripts` table with `processing`/`ready` status tracking for observability dashboards.
+
 ## Modules
 
 Domains are available under `app/Domains/*` with corresponding repository interfaces in `app/Repositories/Contracts` and Eloquent stubs in `app/Repositories/Eloquent`.

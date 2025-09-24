@@ -407,9 +407,12 @@ class DownloadRecordingJob implements ShouldQueue
 
         $job = new DomainJob();
         $job->type = 'transcribe';
+        $language = (string) ($settings->get('transcription.language') ?? 'en');
+
         $job->payload = [
             'recording_id' => $recording->id,
             'engine' => $engine,
+            'language' => $language,
         ];
         $job->status = 'queued';
         $job->attempts = 0;

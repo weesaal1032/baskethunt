@@ -41,6 +41,16 @@ class StorageService
         return $this->driver($driverName)->read($path);
     }
 
+    /**
+     * @return resource
+     */
+    public function streamRecording(string $path, ?string $driver = null)
+    {
+        $driverName = $driver ?? $this->resolveDefaultDriver();
+
+        return $this->driver($driverName)->readStream($path);
+    }
+
     public function temporaryUrl(string $path, DateTimeInterface $expiresAt, ?string $driver = null): string
     {
         $driverName = $driver ?? $this->resolveDefaultDriver();
