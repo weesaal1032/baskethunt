@@ -2,7 +2,21 @@
 
 namespace App\Repositories\Contracts;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\LazyCollection;
+
 interface RecordingsRepositoryInterface extends RepositoryInterface
 {
-    // Domain-specific queries for Recordings will live here.
+    /**
+     * @param array<string, mixed> $filters
+     */
+    public function paginateLibrary(array $filters, int $perPage): LengthAwarePaginator;
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    public function lazyLibrary(array $filters, int $chunkSize = 500): LazyCollection;
+
+    public function agentsForLibrary(): Collection;
 }

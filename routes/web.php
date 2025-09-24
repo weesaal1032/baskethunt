@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\RecordingLibraryController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TelephonyProviderController;
 use App\Http\Controllers\Auth\LoginController;
@@ -22,6 +23,11 @@ Route::prefix('install')->name('install.')->middleware('installer.unlocked')->gr
 Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
     Route::middleware('role:admin,lead')->group(function (): void {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    });
+
+    Route::middleware('role:admin,lead,qa,readonly')->group(function (): void {
+        Route::get('recordings', [RecordingLibraryController::class, 'index'])->name('recordings.index');
+        Route::get('recordings/export', [RecordingLibraryController::class, 'export'])->name('recordings.export');
     });
 
     Route::middleware('role:admin')->group(function (): void {

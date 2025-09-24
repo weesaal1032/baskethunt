@@ -39,6 +39,7 @@
                     @endunless
                     <a href="{{ route('admin.dashboard') }}" class="hover:text-brand-500">Admin</a>
                     @auth
+                        <a href="{{ route('admin.recordings.index') }}" class="hover:text-brand-500">Recordings</a>
                         @if (auth()->user()?->role === 'admin')
                             <a href="{{ route('admin.providers.telephony.mapping') }}" class="hover:text-brand-500">Providers</a>
                             <a href="{{ route('admin.settings.general') }}" class="hover:text-brand-500">Settings</a>
