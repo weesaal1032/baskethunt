@@ -7,3 +7,4 @@
 07 | Storage backend drivers | Added pluggable storage service with local/S3 drivers, migrations utility, and configuration/docs updates.
 08 | Telephony provider client and mapping UI | Added GenericRestClient with retry/backoff plus admin mapping preview workflow.
 09 | Telephony call ingestion and polling | Added scheduled poll:calls command, ingestion service, recording download queue, and health telemetry.
+10 | Recording download worker | Streamed downloads with FFmpeg MP3 conversion, waveform capture, and transcription enqueue.
