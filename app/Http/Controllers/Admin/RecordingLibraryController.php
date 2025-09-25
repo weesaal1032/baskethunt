@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Recording;
+use App\Services\Qa\QaScoringService;
 use App\Services\Recordings\RecordingLibraryService;
 use App\Services\Storage\StorageService;
 use Carbon\CarbonImmutable;
@@ -19,7 +20,8 @@ final class RecordingLibraryController extends Controller
 {
     public function __construct(
         private readonly RecordingLibraryService $service,
-        private readonly StorageService $storage
+        private readonly StorageService $storage,
+        private readonly QaScoringService $qa
     )
     {
     }
@@ -45,7 +47,7 @@ final class RecordingLibraryController extends Controller
         ]);
     }
 
-    public function show(Recording $recording): View
+    public function show(Request $request, Recording $recording): View
     {
         $this->authorize('view', $recording);
 
@@ -54,6 +56,9 @@ final class RecordingLibraryController extends Controller
         abort_if($detail === null, 404);
 
         $piiMasking = $this->service->piiMaskingEnabled();
+        $user = $request->user();
+        abort_if($user === null, 403);
+        $qaContext = $this->qa->workspace($detail->call, $user);
         $audioUrl = URL::temporarySignedRoute(
             'admin.recordings.audio',
             CarbonImmutable::now()->addMinutes(5),
@@ -66,6 +71,7 @@ final class RecordingLibraryController extends Controller
             'transcript' => $detail->transcript,
             'piiMasking' => $piiMasking,
             'audioUrl' => $audioUrl,
+            'qaContext' => $qaContext,
         ]);
     }
 

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\RecordingLibraryController;
+use App\Http\Controllers\Admin\QaReportsController;
+use App\Http\Controllers\Admin\QaScoresController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TelephonyProviderController;
 use App\Http\Controllers\Auth\LoginController;
@@ -32,6 +34,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::get('recordings/{recording}/audio', [RecordingLibraryController::class, 'audio'])
             ->middleware('signed')
             ->name('recordings.audio');
+    });
+
+    Route::middleware('role:admin,lead,qa')->group(function (): void {
+        Route::post('recordings/{recording}/qa/score', [QaScoresController::class, 'store'])->name('recordings.qa.score');
+        Route::get('recordings/{recording}/qa/history', [QaScoresController::class, 'history'])->name('recordings.qa.history');
+        Route::get('qa/reports', [QaReportsController::class, 'index'])->name('qa.reports');
+        Route::get('qa/export', [QaReportsController::class, 'export'])->name('qa.export');
     });
 
     Route::middleware('role:admin')->group(function (): void {

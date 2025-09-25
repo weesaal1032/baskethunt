@@ -1,5 +1,17 @@
 <style>[x-cloak]{display:none!important;}</style>
 
+@php
+    $qaInitialRubric = $form['qa']['rubric'];
+
+    if (old('qa_rubric')) {
+        $decodedRubric = json_decode(old('qa_rubric'), true);
+
+        if (is_array($decodedRubric)) {
+            $qaInitialRubric = $decodedRubric;
+        }
+    }
+@endphp
+
 <div class="max-w-5xl mx-auto" x-data="{
         tab: 'general',
         storageDriver: @js(old('storage_driver', $form['storage']['driver'])),
@@ -19,6 +31,7 @@
                     'storage' => 'Storage',
                     'transcription' => 'Transcription',
                     'notifications' => 'Notifications',
+                    'qa' => 'QA Rubric',
                     'privacy' => 'Privacy & Retention',
                 ];
             @endphp
@@ -258,6 +271,98 @@
             </div>
         </section>
 
+        <section x-show="tab === 'qa'" x-cloak class="bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700">
+            <div class="p-6 space-y-6" x-data="qaBuilder({
+                rubric: @js($qaInitialRubric),
+                passThreshold: {{ (int) old('qa_pass_threshold', $form['qa']['pass_threshold']) }},
+                rubricVersion: {{ (int) $form['qa']['rubric_version'] }},
+            })">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">QA Rubric Builder</h2>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Define scoring categories, question weights, and pass thresholds consumed by the QA workspace.</p>
+                    </div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">Current version: v{{ $form['qa']['rubric_version'] }}</div>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="qa_pass_threshold" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Passing Threshold (%)</label>
+                        <input id="qa_pass_threshold" name="qa_pass_threshold" type="number" min="0" max="100" x-model.number="passThreshold" value="{{ (int) old('qa_pass_threshold', $form['qa']['pass_threshold']) }}" class="mt-2 w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                    </div>
+                    <div class="text-sm text-slate-500 dark:text-slate-400">
+                        <p>Updating the rubric increments its version and refreshes the QA scoring UI the next time it loads.</p>
+                    </div>
+                </div>
+
+                <input type="hidden" name="qa_rubric" :value="serializedRubric()">
+
+                <div class="space-y-6">
+                    <template x-for="(category, catIndex) in categories" :key="category.id">
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40 p-4 space-y-4">
+                            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div class="flex-1">
+                                    <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Category Name</label>
+                                    <input type="text" x-model="categories[catIndex].name" class="mt-1 w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                                </div>
+                                <div class="flex items-end gap-2">
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Weight</label>
+                                        <input type="number" step="1" x-model.number="categories[catIndex].weight" class="mt-1 w-24 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                                    </div>
+                                    <button type="button" class="mt-5 inline-flex items-center rounded-md border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-200 dark:hover:bg-rose-900/30" @click="removeCategory(catIndex)">Remove</button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <template x-for="(question, questionIndex) in category.questions" :key="question.id">
+                                    <div class="rounded-md border border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-900 p-4 space-y-3">
+                                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div class="flex-1">
+                                                <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Prompt</label>
+                                                <input type="text" x-model="categories[catIndex].questions[questionIndex].prompt" class="mt-1 w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                                            </div>
+                                            <div class="flex items-end gap-2">
+                                                <div>
+                                                    <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Type</label>
+                                                    <select x-model="categories[catIndex].questions[questionIndex].type" class="mt-1 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                                                        <option value="yes_no">Yes / No</option>
+                                                        <option value="scale">Scale</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Weight</label>
+                                                    <input type="number" step="0.5" x-model.number="categories[catIndex].questions[questionIndex].weight" class="mt-1 w-20 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                                                </div>
+                                                <button type="button" class="inline-flex items-center rounded-md border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-200 dark:hover:bg-rose-900/30" @click="removeQuestion(catIndex, questionIndex)">Remove</button>
+                                            </div>
+                                        </div>
+                                        <div x-show="question.type === 'scale'" x-cloak class="grid gap-4 sm:grid-cols-2">
+                                            <div>
+                                                <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Scale Minimum</label>
+                                                <input type="number" step="0.5" x-model.number="categories[catIndex].questions[questionIndex].scale_min" class="mt-1 w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Scale Maximum</label>
+                                                <input type="number" step="0.5" min="1" x-model.number="categories[catIndex].questions[questionIndex].scale_max" class="mt-1 w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <button type="button" class="inline-flex items-center rounded-md border border-brand-300 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-600 hover:bg-brand-100 dark:border-brand-500/60 dark:bg-brand-500/10 dark:text-brand-200" @click="addQuestion(catIndex)">Add Question</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="flex justify-between">
+                    <button type="button" class="inline-flex items-center rounded-md border border-brand-300 bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-100 dark:border-brand-500/60 dark:bg-brand-500/10 dark:text-brand-200" @click="addCategory()">Add Category</button>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Rubric changes are saved when you submit the settings form.</p>
+                </div>
+            </div>
+        </section>
+
         <section x-show="tab === 'privacy'" x-cloak class="bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700">
             <div class="p-6 space-y-6">
                 <div>
@@ -283,3 +388,95 @@
         </div>
     </form>
 </div>
+
+@push('scripts')
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('qaBuilder', (initial) => ({
+                categories: [],
+                passThreshold: initial.passThreshold ?? 80,
+                rubricVersion: initial.rubricVersion ?? 1,
+                init() {
+                    const base = Array.isArray(initial.rubric) ? initial.rubric : [];
+                    this.categories = base.map((category) => this.normalizeCategory(category));
+
+                    if (this.categories.length === 0) {
+                        this.addCategory();
+                    }
+                },
+                normalizeCategory(category) {
+                    const normalised = {
+                        id: category.id || this.uuid(),
+                        name: category.name || 'New Category',
+                        weight: Number(category.weight ?? 0),
+                        questions: Array.isArray(category.questions)
+                            ? category.questions.map((question) => this.normalizeQuestion(question))
+                            : [],
+                    };
+
+                    if (normalised.questions.length === 0) {
+                        normalised.questions.push(this.normalizeQuestion({ prompt: 'New question', type: 'yes_no', weight: 1 }));
+                    }
+
+                    return normalised;
+                },
+                normalizeQuestion(question) {
+                    const type = ['yes_no', 'scale'].includes(question.type) ? question.type : 'yes_no';
+
+                    return {
+                        id: question.id || this.uuid(),
+                        prompt: question.prompt || 'Question',
+                        type,
+                        weight: Number(question.weight ?? 0),
+                        scale_min: Number(question.scale_min ?? 0),
+                        scale_max: Number(question.scale_max ?? 5) || 5,
+                    };
+                },
+                uuid() {
+                    return (typeof crypto !== 'undefined' && crypto.randomUUID)
+                        ? crypto.randomUUID()
+                        : 'qa-' + Math.random().toString(36).slice(2, 10);
+                },
+                addCategory() {
+                    this.categories.push(this.normalizeCategory({
+                        name: 'New Category',
+                        weight: 0,
+                        questions: [this.normalizeQuestion({ prompt: 'Did the agent greet the caller?', type: 'yes_no', weight: 1 })],
+                    }));
+                },
+                removeCategory(index) {
+                    this.categories.splice(index, 1);
+
+                    if (this.categories.length === 0) {
+                        this.addCategory();
+                    }
+                },
+                addQuestion(catIndex) {
+                    if (!this.categories[catIndex]) {
+                        return;
+                    }
+
+                    this.categories[catIndex].questions.push(this.normalizeQuestion({
+                        prompt: 'New question',
+                        type: 'yes_no',
+                        weight: 1,
+                    }));
+                },
+                removeQuestion(catIndex, questionIndex) {
+                    if (!this.categories[catIndex]) {
+                        return;
+                    }
+
+                    this.categories[catIndex].questions.splice(questionIndex, 1);
+
+                    if (this.categories[catIndex].questions.length === 0) {
+                        this.addQuestion(catIndex);
+                    }
+                },
+                serializedRubric() {
+                    return JSON.stringify(this.categories);
+                },
+            }));
+        });
+    </script>
+@endpush

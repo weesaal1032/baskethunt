@@ -12,10 +12,54 @@
         return sprintf('%02d:%02d', $minutes, $remainingSeconds);
     };
     $segments = $transcript?->segments ?? [];
-    $qaScore = $call?->qaScores?->first();
+    $qaSummaryScore = $call?->qaScores?->first();
+    $qaContext = $qaContext ?? [];
+    $formatScore = function ($score) {
+        if (! $score) {
+            return null;
+        }
+
+        return [
+            'id' => $score->id,
+            'version' => $score->version,
+            'status' => $score->status,
+            'total_score' => $score->total_score,
+            'possible_score' => $score->possible_score,
+            'passed' => (bool) $score->passed,
+            'comments' => $score->comments,
+            'tags' => $score->tags ?? [],
+            'rubric_version' => $score->rubric_version,
+            'created_at' => optional($score->created_at)->toDateTimeString(),
+            'updated_at' => optional($score->updated_at)->toDateTimeString(),
+            'submitted_at' => optional($score->submitted_at)->toDateTimeString(),
+            'scorer' => $score->scorer?->only(['id', 'name']),
+        ];
+    };
+
+    $qaHistory = collect($qaContext['history'] ?? [])->map($formatScore)->filter()->values()->all();
+    $qaDraft = $formatScore($qaContext['draft'] ?? null);
+    $qaLatest = $formatScore($qaContext['latest_submitted'] ?? null);
+    $qaSeed = $qaContext['seed'] ?? ['responses' => [], 'comment' => null, 'tags' => [], 'passed' => false];
+
+    $qaWorkspaceInitial = [
+        'rubric' => $qaContext['rubric'] ?? [],
+        'rubricVersion' => $qaContext['rubric_version'] ?? 1,
+        'passThreshold' => $qaContext['pass_threshold'] ?? 80,
+        'nextVersion' => $qaContext['next_version'] ?? 1,
+        'seedResponses' => $qaSeed['responses'] ?? [],
+        'seedComment' => $qaSeed['comment'] ?? '',
+        'seedTags' => $qaSeed['tags'] ?? [],
+        'seedPassed' => $qaSeed['passed'] ?? false,
+        'history' => $qaHistory,
+        'draft' => $qaDraft,
+        'latest' => $qaLatest,
+        'suggestedTags' => $qaContext['suggested_tags'] ?? [],
+        'saveUrl' => route('admin.recordings.qa.score', $recording),
+        'historyUrl' => route('admin.recordings.qa.history', $recording),
+    ];
 @endphp
 
-<div class="space-y-8" x-data="{ }">
+<div class="space-y-8" x-data="qaWorkspace(@json($qaWorkspaceInitial))">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <a href="{{ route('admin.recordings.index') }}" class="text-sm text-brand-500 hover:text-brand-600">&larr; Back to library</a>
@@ -43,10 +87,14 @@
                 <span class="block text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Disposition</span>
                 <span>{{ $call?->disposition ?? '—' }}</span>
             </div>
-            @if ($qaScore)
+            @php
+                $qaHeaderScore = $qaLatest['total_score'] ?? ($qaSummaryScore->total_score ?? null);
+                $qaHeaderStatus = $qaLatest['status'] ?? ($qaSummaryScore->status ?? null) ?? 'draft';
+            @endphp
+            @if ($qaHeaderScore !== null)
                 <div class="rounded border border-brand-300 bg-brand-50 px-3 py-2 text-brand-700 shadow-sm dark:border-brand-400/60 dark:bg-brand-500/10 dark:text-brand-200">
-                    <span class="block text-[10px] font-semibold uppercase tracking-wide text-brand-500/80">QA Score</span>
-                    <span>{{ $qaScore->total_score }} / 100</span>
+                    <span class="block text-[10px] font-semibold uppercase tracking-wide text-brand-500/80">QA Score ({{ $qaHeaderStatus }})</span>
+                    <span>{{ $qaHeaderScore }}%</span>
                 </div>
             @endif
         </div>
@@ -124,10 +172,541 @@
             </div>
         </div>
     </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+        <div class="flex flex-col gap-3 border-b border-slate-200 px-6 py-4 dark:border-slate-700 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">QA Scoring</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Rubric v<span x-text="rubricVersion"></span> · Pass threshold <span x-text="passThreshold"></span>%</p>
+            </div>
+            <div class="text-right">
+                <div class="text-2xl font-semibold text-slate-900 dark:text-slate-100" x-text="scoreLabel()"></div>
+                <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400" x-text="statusBadge()"></div>
+            </div>
+        </div>
+
+        <div class="space-y-6 px-6 py-6">
+            <template x-for="(category, catIndex) in rubric" :key="category.id">
+                <div class="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/40">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100" x-text="category.name"></h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Weight: <span x-text="category.weight"></span></p>
+                        </div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">Questions: <span x-text="category.questions.length"></span></div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <template x-for="(question, questionIndex) in category.questions" :key="question.id">
+                            <div class="rounded-md border border-slate-200 bg-white p-4 dark:border-slate-600 dark:bg-slate-900">
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-slate-900 dark:text-slate-100" x-text="question.prompt"></p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">Weight: <span x-text="question.weight"></span></p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <template x-if="question.type === 'yes_no'">
+                                            <div class="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    class="rounded-md border px-3 py-1 text-sm font-semibold"
+                                                    :class="responses[question.id] === true ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300'"
+                                                    @click="setYesNo(question.id, true)"
+                                                >Yes</button>
+                                                <button
+                                                    type="button"
+                                                    class="rounded-md border px-3 py-1 text-sm font-semibold"
+                                                    :class="responses[question.id] === false ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300'"
+                                                    @click="setYesNo(question.id, false)"
+                                                >No</button>
+                                            </div>
+                                        </template>
+                                        <template x-if="question.type === 'scale'">
+                                            <div class="flex items-center gap-2">
+                                                <input type="range" :min="question.scale_min" :max="question.scale_max" step="0.5" :value="responses[question.id] ?? question.scale_min" @input="setScale(question.id, $event.target.value)" class="w-40">
+                                                <span class="w-10 text-right text-sm font-semibold text-slate-700 dark:text-slate-200" x-text="Number(responses[question.id] ?? question.scale_min).toFixed(1)"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="qa_comment" class="block text-sm font-semibold text-slate-700 dark:text-slate-200">Evaluator Comments</label>
+                    <textarea id="qa_comment" rows="3" x-model="comment" @input="queueSave()" class="mt-2 w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" placeholder="Call out coaching moments, objections, or compliance notes"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">Tags</label>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <template x-for="(tag, index) in tags" :key="tag">
+                            <span class="inline-flex items-center gap-1 rounded-full bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-600 dark:bg-brand-500/20 dark:text-brand-200">
+                                <span x-text="tag"></span>
+                                <button type="button" class="text-brand-500 hover:text-brand-700 dark:text-brand-200" @click="removeTag(index)">×</button>
+                            </span>
+                        </template>
+                        <input type="text" placeholder="Add tag and press enter" class="min-w-[160px] rounded-md border border-dashed border-slate-300 px-3 py-1 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" @keydown.enter.prevent="addTagFromInput($event)">
+                    </div>
+                    <div class="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <template x-for="suggestion in suggestedTags" :key="suggestion">
+                            <button type="button" class="rounded-full border border-slate-300 px-3 py-1 hover:border-brand-500 hover:text-brand-600 dark:border-slate-600 dark:hover:border-brand-400 dark:hover:text-brand-200" @click="addSuggestedTag(suggestion)">
+                                <span x-text="suggestion"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <input id="qa_passed" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500" x-model="passed" @change="queueSave()">
+                    <label for="qa_passed" class="text-sm text-slate-600 dark:text-slate-300">Mark as pass regardless of score</label>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div class="text-xs" :class="error ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'" x-text="statusLabel()"></div>
+                <div class="flex gap-3">
+                    <button type="button" class="inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-brand-500 hover:text-brand-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200" @click="save(false)" :disabled="saving">Save Draft</button>
+                    <button type="button" class="inline-flex items-center rounded-md bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-60" @click="save(true)" :disabled="saving">Submit Score</button>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                <div class="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+                    <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">History</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+                        <thead class="bg-slate-50 dark:bg-slate-900/60">
+                            <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                <th class="px-4 py-2">Version</th>
+                                <th class="px-4 py-2">Status</th>
+                                <th class="px-4 py-2 text-right">Score</th>
+                                <th class="px-4 py-2">Evaluator</th>
+                                <th class="px-4 py-2">Submitted</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                            <template x-if="history.length === 0">
+                                <tr>
+                                    <td colspan="5" class="px-4 py-3 text-center text-slate-500 dark:text-slate-400">No QA entries yet.</td>
+                                </tr>
+                            </template>
+                            <template x-for="item in history" :key="item.id">
+                                <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                                    <td class="px-4 py-2 text-slate-700 dark:text-slate-200" x-text="'v' + item.version"></td>
+                                    <td class="px-4 py-2 text-slate-600 dark:text-slate-300" x-text="item.status"></td>
+                                    <td class="px-4 py-2 text-right font-semibold text-slate-900 dark:text-slate-100" x-text="item.total_score + '%'"></td>
+                                    <td class="px-4 py-2 text-slate-600 dark:text-slate-300" x-text="item.scorer ? item.scorer.name : '—'"></td>
+                                    <td class="px-4 py-2 text-slate-600 dark:text-slate-300" x-text="item.submitted_at || item.updated_at"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @push('scripts')
     <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.js"></script>
+    <script>
+        window.qaWorkspace = function (initial) {
+            return {
+                rubric: initial.rubric ?? [],
+                rubricVersion: initial.rubricVersion ?? 1,
+                passThreshold: initial.passThreshold ?? 80,
+                nextVersion: initial.nextVersion ?? 1,
+                responses: Object.assign({}, initial.seedResponses ?? {}),
+                comment: initial.seedComment ?? '',
+                tags: Array.isArray(initial.seedTags) ? [...initial.seedTags] : [],
+                passed: Boolean(initial.seedPassed ?? false),
+                history: Array.isArray(initial.history) ? initial.history : [],
+                draft: initial.draft ?? null,
+                latest: initial.latest ?? null,
+                suggestedTags: Array.isArray(initial.suggestedTags) ? initial.suggestedTags : [],
+                saveUrl: initial.saveUrl,
+                historyUrl: initial.historyUrl,
+                version: initial.draft?.version ?? initial.nextVersion ?? 1,
+                saving: false,
+                error: null,
+                currentScorePercent: null,
+                currentPossible: 0,
+                queueHandle: null,
+                saveQueued: false,
+                queuedFinalize: false,
+                lastSavedAt: initial.draft?.updated_at ?? initial.latest?.submitted_at ?? null,
+                csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                init() {
+                    this.updateScore();
+                },
+                setYesNo(id, value) {
+                    const key = String(id);
+                    if (this.responses[key] === value) {
+                        delete this.responses[key];
+                    } else {
+                        this.responses[key] = value;
+                    }
+                    this.updateScore();
+                    this.queueSave();
+                },
+                setScale(id, value) {
+                    const numeric = parseFloat(value);
+                    const key = String(id);
+                    this.responses[key] = Number.isFinite(numeric) ? numeric : null;
+                    this.updateScore();
+                    this.queueSave();
+                },
+                addTagFromInput(event) {
+                    const value = (event.target.value || '').trim();
+                    if (!value) {
+                        return;
+                    }
+                    this.addTag(value);
+                    event.target.value = '';
+                },
+                addSuggestedTag(tag) {
+                    this.addTag(tag);
+                },
+                addTag(tag) {
+                    const clean = (tag || '').trim();
+                    if (!clean) {
+                        return;
+                    }
+                    if (!this.tags.includes(clean)) {
+                        this.tags.push(clean);
+                        this.queueSave();
+                    }
+                },
+                removeTag(index) {
+                    this.tags.splice(index, 1);
+                    this.queueSave();
+                },
+                queueSave() {
+                    if (this.queueHandle) {
+                        clearTimeout(this.queueHandle);
+                    }
+                    this.queueHandle = setTimeout(() => {
+                        this.queueHandle = null;
+                        this.save(false);
+                    }, 900);
+                },
+                async save(finalize = false) {
+                    if (this.queueHandle) {
+                        clearTimeout(this.queueHandle);
+                        this.queueHandle = null;
+                    }
+
+                    if (this.saving) {
+                        this.saveQueued = true;
+                        this.queuedFinalize = this.queuedFinalize || finalize;
+                        return;
+                    }
+
+                    this.saving = true;
+                    this.error = null;
+
+                    const payload = {
+                        responses: this.serializedResponses(),
+                        comment: this.comment || null,
+                        tags: this.tags,
+                        passed: this.passed,
+                        version: this.version,
+                        rubric_version: this.rubricVersion,
+                        finalize,
+                    };
+
+                    try {
+                        const response = await fetch(this.saveUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken,
+                            },
+                            body: JSON.stringify(payload),
+                        });
+
+                        if (response.status === 409) {
+                            const conflict = await response.json();
+                            this.error = conflict.message ?? 'Rubric has changed. Refresh to continue scoring.';
+                            if (conflict.rubric_version) {
+                                this.rubricVersion = conflict.rubric_version;
+                            }
+                            return;
+                        }
+
+                        if (!response.ok) {
+                            const message = (await response.json().catch(() => null))?.message ?? 'Unable to save QA score.';
+                            throw new Error(message);
+                        }
+
+                        const data = await response.json();
+                        this.applyWorkspace(data);
+                    } catch (error) {
+                        this.error = error instanceof Error ? error.message : 'Unable to save QA score.';
+                    } finally {
+                        this.saving = false;
+                        const shouldRetry = this.saveQueued;
+                        const finalizeRetry = this.queuedFinalize;
+                        this.saveQueued = false;
+                        this.queuedFinalize = false;
+                        if (shouldRetry) {
+                            this.save(finalizeRetry);
+                        }
+                    }
+                },
+                applyWorkspace(data) {
+                    if (typeof data !== 'object' || data === null) {
+                        return;
+                    }
+
+                    if (Array.isArray(data.history)) {
+                        this.history = data.history;
+                    }
+
+                    this.draft = data.draft ?? null;
+                    this.latest = data.latest_submitted ?? null;
+                    if (Array.isArray(data.suggested_tags)) {
+                        this.suggestedTags = data.suggested_tags;
+                    }
+
+                    if (typeof data.rubric_version === 'number') {
+                        this.rubricVersion = data.rubric_version;
+                    }
+
+                    if (typeof data.pass_threshold === 'number') {
+                        this.passThreshold = data.pass_threshold;
+                    }
+
+                    if (typeof data.next_version === 'number') {
+                        this.nextVersion = data.next_version;
+                    }
+
+                    if (data.score) {
+                        this.version = data.score.version ?? this.version;
+                        this.passed = Boolean(data.score.passed ?? this.passed);
+                        this.comment = data.score.comments ?? '';
+                        this.tags = Array.isArray(data.score.tags) ? data.score.tags : [];
+                        this.lastSavedAt = data.score.submitted_at ?? data.score.updated_at ?? null;
+                    } else if (this.draft) {
+                        this.version = this.draft.version;
+                        this.lastSavedAt = this.draft.updated_at ?? null;
+                        this.passed = Boolean(this.draft.passed);
+                        this.comment = this.draft.comments ?? '';
+                        this.tags = Array.isArray(this.draft.tags) ? this.draft.tags : this.tags;
+                    } else if (this.latest) {
+                        this.version = this.latest.version;
+                        this.lastSavedAt = this.latest.submitted_at ?? this.latest.updated_at ?? null;
+                        this.passed = Boolean(this.latest.passed);
+                        this.comment = this.latest.comments ?? '';
+                        this.tags = Array.isArray(this.latest.tags) ? this.latest.tags : this.tags;
+                    } else {
+                        this.version = this.nextVersion ?? this.version ?? 1;
+                    }
+
+                    this.error = null;
+                    this.updateScore();
+                },
+                serializedResponses() {
+                    const allowed = new Set();
+                    this.rubric.forEach((category) => {
+                        (category.questions ?? []).forEach((question) => {
+                            if (question.id) {
+                                allowed.add(String(question.id));
+                            }
+                        });
+                    });
+
+                    const output = {};
+
+                    allowed.forEach((id) => {
+                        if (!Object.prototype.hasOwnProperty.call(this.responses, id)) {
+                            return;
+                        }
+
+                        const value = this.responses[id];
+                        const question = this.findQuestion(id);
+
+                        if (!question) {
+                            return;
+                        }
+
+                        if (question.type === 'yes_no') {
+                            if (typeof value === 'boolean') {
+                                output[id] = value;
+                            } else if (typeof value === 'string') {
+                                const normalized = value.trim().toLowerCase();
+                                output[id] = ['true', '1', 'yes', 'y'].includes(normalized);
+                            } else {
+                                output[id] = Boolean(value);
+                            }
+                        } else {
+                            const numeric = Number(value);
+                            if (Number.isFinite(numeric)) {
+                                output[id] = numeric;
+                            }
+                        }
+                    });
+
+                    return output;
+                },
+                findQuestion(id) {
+                    for (const category of this.rubric) {
+                        for (const question of category.questions ?? []) {
+                            if (String(question.id) === String(id)) {
+                                return question;
+                            }
+                        }
+                    }
+                    return null;
+                },
+                statusLabel() {
+                    if (this.error) {
+                        return this.error;
+                    }
+
+                    if (this.saving) {
+                        return 'Saving…';
+                    }
+
+                    if (this.draft) {
+                        const timestamp = this.draft.updated_at ?? this.lastSavedAt ?? null;
+                        return `Draft v${this.draft.version} · ${this.formatTimestamp(timestamp)}`;
+                    }
+
+                    if (this.latest) {
+                        const timestamp = this.latest.submitted_at ?? this.latest.updated_at ?? null;
+                        return `Submitted v${this.latest.version} · ${this.formatTimestamp(timestamp)}`;
+                    }
+
+                    return 'No QA evaluation captured yet.';
+                },
+                statusBadge() {
+                    if (this.error) {
+                        return 'Attention needed';
+                    }
+
+                    if (this.saving) {
+                        return 'Saving…';
+                    }
+
+                    if (this.draft) {
+                        return this.draft.passed ? `Draft · Passing` : `Draft · Needs review`;
+                    }
+
+                    if (this.latest) {
+                        return this.latest.passed ? `Submitted · Passing` : `Submitted · Needs review`;
+                    }
+
+                    return 'Unscored';
+                },
+                scoreLabel() {
+                    const percent = this.currentPercent();
+                    if (percent !== null) {
+                        return `${Math.round(percent)}%`;
+                    }
+
+                    if (this.latest) {
+                        return `${Math.round(this.latest.total_score ?? 0)}%`;
+                    }
+
+                    if (this.draft) {
+                        return `${Math.round(this.draft.total_score ?? 0)}%`;
+                    }
+
+                    return '--';
+                },
+                currentPercent() {
+                    if (this.currentScorePercent !== null) {
+                        return this.currentScorePercent;
+                    }
+
+                    return null;
+                },
+                updateScore() {
+                    const result = this.calculateScore();
+                    this.currentPossible = result.possible;
+                    this.currentScorePercent = result.percent;
+                },
+                calculateScore() {
+                    let possible = 0;
+                    let earned = 0;
+
+                    this.rubric.forEach((category) => {
+                        (category.questions ?? []).forEach((question) => {
+                            const weight = Number(question.weight ?? 0);
+                            if (weight <= 0) {
+                                return;
+                            }
+
+                            possible += weight;
+                            if (question.type === 'yes_no') {
+                                const key = String(question.id);
+                                const value = this.responses[key];
+                                if (value === true || value === 'true' || value === 1) {
+                                    earned += weight;
+                                }
+                            } else if (question.type === 'scale') {
+                                const min = Number(question.scale_min ?? 0);
+                                const max = Number(question.scale_max ?? weight || 1);
+                                const key = String(question.id);
+                                const raw = Number(this.responses[key] ?? min);
+                                if (Number.isFinite(raw)) {
+                                    const clamped = Math.min(max, Math.max(min, raw));
+                                    const range = Math.max(max - min, 1);
+                                    earned += weight * ((clamped - min) / range);
+                                }
+                            }
+                        });
+                    });
+
+                    if (possible <= 0) {
+                        return { possible: 0, earned: 0, percent: null };
+                    }
+
+                    return {
+                        possible,
+                        earned,
+                        percent: (earned / possible) * 100,
+                    };
+                },
+                isPassing() {
+                    if (this.passed) {
+                        return true;
+                    }
+
+                    const percent = this.currentPercent();
+                    if (percent === null) {
+                        const reference = this.latest ?? this.draft;
+                        if (!reference) {
+                            return false;
+                        }
+                        return Number(reference.total_score ?? 0) >= this.passThreshold;
+                    }
+
+                    return percent >= this.passThreshold;
+                },
+                formatTimestamp(value) {
+                    if (!value) {
+                        return 'Not saved yet';
+                    }
+
+                    const parsed = new Date(value.replace(' ', 'T'));
+                    if (Number.isNaN(parsed.getTime())) {
+                        return value;
+                    }
+
+                    return parsed.toLocaleString();
+                },
+            };
+        };
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const audioElement = document.getElementById('call-audio');

@@ -14,6 +14,11 @@ class QaScore extends Model
 
     protected $casts = [
         'rubric' => 'array',
+        'responses' => 'array',
+        'score_breakdown' => 'array',
+        'tags' => 'array',
+        'submitted_at' => 'datetime',
+        'passed' => 'boolean',
     ];
 
     public function call(): BelongsTo

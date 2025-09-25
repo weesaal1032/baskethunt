@@ -7,6 +7,7 @@ use App\Services\Settings\SettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -54,6 +55,9 @@ class SettingsController extends Controller
             'notifications.slack.webhook',
             'privacy.pii_masking',
             'privacy.retention_months',
+            'qa.rubric',
+            'qa.pass_threshold',
+            'qa.rubric_version',
         ];
 
         $values = $this->settings->getMany($keys);
@@ -61,6 +65,15 @@ class SettingsController extends Controller
         $telephonyRateLimit = $values['telephony.provider.rate_limit'] ?? '';
         if (is_array($telephonyRateLimit)) {
             $telephonyRateLimit = json_encode($telephonyRateLimit, JSON_PRETTY_PRINT);
+        }
+
+        $qaRubric = $values['qa.rubric'] ?? config('callhub.qa.rubric');
+        if (is_string($qaRubric) && $qaRubric !== '') {
+            $qaRubric = json_decode($qaRubric, true);
+        }
+
+        if (! is_array($qaRubric)) {
+            $qaRubric = config('callhub.qa.rubric', []);
         }
 
         $form = [
@@ -115,6 +128,11 @@ class SettingsController extends Controller
                 'pii_masking' => $this->normalizeBool($values['privacy.pii_masking'] ?? true),
                 'retention_months' => (int) ($values['privacy.retention_months'] ?? 12),
             ],
+            'qa' => [
+                'rubric' => $qaRubric,
+                'pass_threshold' => (int) ($values['qa.pass_threshold'] ?? config('callhub.qa.pass_threshold', 80)),
+                'rubric_version' => (int) ($values['qa.rubric_version'] ?? config('callhub.qa.rubric_version', 1)),
+            ],
         ];
 
         return view('layouts.base', [
@@ -135,6 +153,17 @@ class SettingsController extends Controller
             'transcription.api_key',
             'notifications.mail.password',
         ]);
+
+        $currentRubric = $this->settings->get('qa.rubric');
+        if (is_string($currentRubric) && $currentRubric !== '') {
+            $currentRubric = json_decode($currentRubric, true);
+        }
+        if (! is_array($currentRubric)) {
+            $currentRubric = config('callhub.qa.rubric', []);
+        }
+
+        $currentRubricVersion = (int) ($this->settings->get('qa.rubric_version') ?? config('callhub.qa.rubric_version', 1));
+        $rubricPayload = [];
 
         $validator = Validator::make($request->all(), [
             'site_name' => ['required', 'string', 'max:255'],
@@ -172,9 +201,11 @@ class SettingsController extends Controller
             'notifications_slack_webhook' => ['nullable', 'url'],
             'privacy_pii_masking' => ['nullable', 'boolean'],
             'privacy_retention_months' => ['required', 'integer', 'min:1', 'max:360'],
+            'qa_rubric' => ['required', 'string'],
+            'qa_pass_threshold' => ['required', 'integer', 'min:0', 'max:100'],
         ]);
 
-        $validator->after(function ($validator) use ($existingSensitive): void {
+        $validator->after(function ($validator) use ($existingSensitive, &$rubricPayload): void {
             if ($validator->errors()->isNotEmpty()) {
                 return;
             }
@@ -212,6 +243,30 @@ class SettingsController extends Controller
             if ($this->secretMissing($data['telephony_api_key'] ?? null, $existingSensitive['telephony.provider.api_key'] ?? null)) {
                 $validator->errors()->add('telephony_api_key', 'A telephony API key is required for provider requests.');
             }
+
+            try {
+                $decoded = json_decode($data['qa_rubric'] ?? '[]', true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException $exception) {
+                $validator->errors()->add('qa_rubric', 'QA rubric JSON is invalid: ' . $exception->getMessage());
+
+                return;
+            }
+
+            if (! is_array($decoded)) {
+                $validator->errors()->add('qa_rubric', 'QA rubric must be an array.');
+
+                return;
+            }
+
+            $sanitisedRubric = $this->sanitizeRubric($decoded);
+
+            if (empty($sanitisedRubric)) {
+                $validator->errors()->add('qa_rubric', 'At least one category with one question is required for the QA rubric.');
+
+                return;
+            }
+
+            $rubricPayload = $sanitisedRubric;
         });
 
         if ($validator->fails()) {
@@ -236,6 +291,10 @@ class SettingsController extends Controller
 
         $piiMasking = $request->boolean('privacy_pii_masking');
         $retentionMonths = (int) $data['privacy_retention_months'];
+        $qaPassThreshold = (int) $data['qa_pass_threshold'];
+        $rubric = $rubricPayload;
+        $rubricChanged = json_encode($currentRubric) !== json_encode($rubric);
+        $rubricVersion = $rubricChanged ? $currentRubricVersion + 1 : $currentRubricVersion;
 
         $settingsPayload = [
             'app.name' => $data['site_name'],
@@ -273,6 +332,9 @@ class SettingsController extends Controller
             'notifications.slack.webhook' => $data['notifications_slack_webhook'] ?? null,
             'privacy.pii_masking' => $piiMasking ? '1' : '0',
             'privacy.retention_months' => $retentionMonths,
+            'qa.rubric' => $rubric,
+            'qa.pass_threshold' => $qaPassThreshold,
+            'qa.rubric_version' => $rubricVersion,
         ];
 
         $this->settings->setMany($settingsPayload);
@@ -333,6 +395,9 @@ class SettingsController extends Controller
             'callhub.notifications.slack.webhook' => $data['notifications_slack_webhook'] ?? null,
             'callhub.privacy.pii_masking' => $piiMasking,
             'callhub.privacy.retention_months' => $retentionMonths,
+            'callhub.qa.rubric' => $rubric,
+            'callhub.qa.pass_threshold' => $qaPassThreshold,
+            'callhub.qa.rubric_version' => $rubricVersion,
         ]);
 
         return redirect()
@@ -372,6 +437,76 @@ class SettingsController extends Controller
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * @param array<int, mixed> $rubric
+     * @return array<int, array<string, mixed>>
+     */
+    private function sanitizeRubric(array $rubric): array
+    {
+        $categories = [];
+
+        foreach ($rubric as $category) {
+            if (! is_array($category)) {
+                continue;
+            }
+
+            $name = trim((string) ($category['name'] ?? ''));
+
+            if ($name === '') {
+                continue;
+            }
+
+            $categoryId = (string) ($category['id'] ?? Str::uuid()->toString());
+            $weight = isset($category['weight']) ? (float) $category['weight'] : 0.0;
+            $questions = [];
+
+            foreach ($category['questions'] ?? [] as $question) {
+                if (! is_array($question)) {
+                    continue;
+                }
+
+                $prompt = trim((string) ($question['prompt'] ?? ''));
+
+                if ($prompt === '') {
+                    continue;
+                }
+
+                $questionId = (string) ($question['id'] ?? Str::uuid()->toString());
+                $type = in_array($question['type'] ?? 'yes_no', ['yes_no', 'scale'], true)
+                    ? $question['type']
+                    : 'yes_no';
+                $questionWeight = isset($question['weight']) ? (float) $question['weight'] : 0.0;
+
+                $questionData = [
+                    'id' => $questionId,
+                    'prompt' => $prompt,
+                    'type' => $type,
+                    'weight' => $questionWeight,
+                ];
+
+                if ($type === 'scale') {
+                    $questionData['scale_min'] = isset($question['scale_min']) ? (float) $question['scale_min'] : 0.0;
+                    $questionData['scale_max'] = max(1.0, isset($question['scale_max']) ? (float) $question['scale_max'] : 5.0);
+                }
+
+                $questions[] = $questionData;
+            }
+
+            if ($questions === []) {
+                continue;
+            }
+
+            $categories[] = [
+                'id' => $categoryId,
+                'name' => $name,
+                'weight' => $weight,
+                'questions' => array_values($questions),
+            ];
+        }
+
+        return $categories;
     }
 
     private function normalizeBool(mixed $value): bool

@@ -56,6 +56,9 @@ class SettingsService
         'notifications.slack.webhook' => 'callhub.notifications.slack.webhook',
         'privacy.pii_masking' => 'callhub.privacy.pii_masking',
         'privacy.retention_months' => 'callhub.privacy.retention_months',
+        'qa.rubric' => 'callhub.qa.rubric',
+        'qa.pass_threshold' => 'callhub.qa.pass_threshold',
+        'qa.rubric_version' => 'callhub.qa.rubric_version',
     ];
 
     public function __construct(private readonly SettingsRepositoryInterface $settings)

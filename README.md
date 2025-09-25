@@ -77,6 +77,13 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - The table surfaces call start times, agent assignments, duration, storage backend, and transcript/QA badges with pagination defaults of 25/50/100 rows.
 - Operators can export the filtered dataset to CSV via the `Export CSV` action; privacy masking is enforced in the export when enabled through Admin → Settings → Privacy & Retention.
 
+## QA Scoring & Reports
+
+- Admin → Settings → QA Rubric introduces a drag-and-drop rubric builder for categories, weights, yes/no and scale questions, pass thresholds, and tag presets. Saving the rubric increments the rubric version so scorers are forced to refresh when the configuration changes.
+- `/admin/recordings/{id}` now renders the Genesys-style workspace with waveform playback, synchronized transcript search, and a right-hand QA panel that auto-saves drafts, supports forced pass/fail overrides, tag suggestions, keyboard shortcuts, and versioned history.
+- Draft saves and submissions happen through the new `/admin/recordings/{recording}/qa/score` endpoint; conflicts return HTTP 409 with the latest rubric version so the Alpine workspace can prompt reviewers to reload.
+- `/admin/qa/reports` surfaces per-agent and per-team rollups with pass-rate trendlines and a CSV export (`/admin/qa/export`) that includes rubric metadata, tags, and timestamps for downstream analysis.
+
 ## Transcription Pipeline
 
 - `TranscribeRecordingJob` converts stored audio into transcripts using the configured Whisper API or local `whisper.cpp` binary through the `TranscriptionService`, capturing full-text output plus time-aligned segments for the QA interface.
@@ -112,7 +119,7 @@ recordings (id, call_id, storage_backend, status)
 
 transcripts (id, recording_id, engine, status)
 
-qa_scores (id, call_id, scored_by)
+qa_scores (id, call_id, scored_by, version, status)
 
 jobs (id, type, status, run_at)
 

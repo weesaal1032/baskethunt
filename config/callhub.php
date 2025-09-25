@@ -87,6 +87,94 @@ return [
         ],
     ],
 
+    'qa' => [
+        'rubric_version' => env('CALLHUB_QA_RUBRIC_VERSION', 1),
+        'pass_threshold' => env('CALLHUB_QA_PASS_THRESHOLD', 80),
+        'rubric' => [
+            [
+                'id' => 'cat_greeting',
+                'name' => 'Greeting & Verification',
+                'weight' => 30,
+                'questions' => [
+                    [
+                        'id' => 'q_greeting_open',
+                        'prompt' => 'Opened the call with brand greeting',
+                        'type' => 'yes_no',
+                        'weight' => 10,
+                    ],
+                    [
+                        'id' => 'q_greeting_verification',
+                        'prompt' => 'Verified caller identity against account data',
+                        'type' => 'yes_no',
+                        'weight' => 10,
+                    ],
+                    [
+                        'id' => 'q_greeting_tone',
+                        'prompt' => 'Tone and rapport during introduction',
+                        'type' => 'scale',
+                        'weight' => 10,
+                        'scale_min' => 0,
+                        'scale_max' => 5,
+                    ],
+                ],
+            ],
+            [
+                'id' => 'cat_resolution',
+                'name' => 'Resolution & Compliance',
+                'weight' => 40,
+                'questions' => [
+                    [
+                        'id' => 'q_resolution_needs',
+                        'prompt' => 'Identified customer need correctly',
+                        'type' => 'yes_no',
+                        'weight' => 10,
+                    ],
+                    [
+                        'id' => 'q_resolution_process',
+                        'prompt' => 'Followed mandatory process checklist',
+                        'type' => 'yes_no',
+                        'weight' => 15,
+                    ],
+                    [
+                        'id' => 'q_resolution_accuracy',
+                        'prompt' => 'Provided accurate information or solution',
+                        'type' => 'scale',
+                        'weight' => 15,
+                        'scale_min' => 0,
+                        'scale_max' => 5,
+                    ],
+                ],
+            ],
+            [
+                'id' => 'cat_closure',
+                'name' => 'Closure & Next Steps',
+                'weight' => 30,
+                'questions' => [
+                    [
+                        'id' => 'q_closure_summary',
+                        'prompt' => 'Summarized resolution and confirmed satisfaction',
+                        'type' => 'yes_no',
+                        'weight' => 10,
+                    ],
+                    [
+                        'id' => 'q_closure_next_steps',
+                        'prompt' => 'Set expectations / next steps',
+                        'type' => 'scale',
+                        'weight' => 10,
+                        'scale_min' => 0,
+                        'scale_max' => 5,
+                    ],
+                    [
+                        'id' => 'q_closure_compliance',
+                        'prompt' => 'Met compliance closing requirements',
+                        'type' => 'yes_no',
+                        'weight' => 10,
+                    ],
+                ],
+            ],
+        ],
+    ],
+
     'privacy' => [
         'pii_masking' => env('CALLHUB_PRIVACY_PII_MASKING', true),
         'retention_months' => env('CALLHUB_RETENTION_MONTHS', 12),
