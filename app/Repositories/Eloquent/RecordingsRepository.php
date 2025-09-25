@@ -14,6 +14,42 @@ use Illuminate\Support\LazyCollection;
 
 final class RecordingsRepository extends BaseRepository implements RecordingsRepositoryInterface
 {
+    public function findForDetail(int $id): ?Recording
+    {
+        return Recording::query()
+            ->with([
+                'transcript',
+                'call' => function (Builder $callQuery): void {
+                    $callQuery
+                        ->select([
+                            'id',
+                            'provider_call_id',
+                            'provider_id',
+                            'agent_id',
+                            'from_number',
+                            'to_number',
+                            'direction',
+                            'started_at',
+                            'ended_at',
+                            'duration_sec',
+                            'disposition',
+                            'queue',
+                            'metadata',
+                        ])
+                        ->with([
+                            'agent:id,name',
+                            'provider:id,name',
+                            'qaScores' => function (Builder $qaQuery): void {
+                                $qaQuery
+                                    ->select(['id', 'call_id', 'total_score', 'comments', 'created_at'])
+                                    ->latest('created_at');
+                            },
+                        ]);
+                },
+            ])
+            ->find($id);
+    }
+
     /**
      * @param array<string, mixed> $filters
      */

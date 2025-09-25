@@ -2,6 +2,7 @@
 
 namespace App\Services\Recordings;
 
+use App\Models\Recording;
 use App\Repositories\Contracts\RecordingsRepositoryInterface;
 use App\Services\Settings\SettingsService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -35,6 +36,11 @@ final class RecordingLibraryService
     public function agents(): Collection
     {
         return $this->recordings->agentsForLibrary();
+    }
+
+    public function detail(int $id): ?Recording
+    {
+        return $this->recordings->findForDetail($id);
     }
 
     public function piiMaskingEnabled(): bool

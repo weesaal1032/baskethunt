@@ -145,7 +145,14 @@
                                 <span class="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">Pending</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-xs text-slate-500">Coming soon</td>
+                        <td class="px-4 py-3 text-xs">
+                            <a
+                                href="{{ route('admin.recordings.show', $recording) }}"
+                                class="inline-flex items-center gap-1 rounded border border-slate-300 px-3 py-1 font-medium text-slate-600 hover:border-brand-500 hover:text-brand-600 dark:border-slate-600 dark:text-slate-300 dark:hover:border-brand-400 dark:hover:text-brand-200"
+                            >
+                                Review
+                            </a>
+                        </td>
                     </tr>
                 @empty
                     <tr>

@@ -28,6 +28,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::middleware('role:admin,lead,qa,readonly')->group(function (): void {
         Route::get('recordings', [RecordingLibraryController::class, 'index'])->name('recordings.index');
         Route::get('recordings/export', [RecordingLibraryController::class, 'export'])->name('recordings.export');
+        Route::get('recordings/{recording}', [RecordingLibraryController::class, 'show'])->name('recordings.show');
+        Route::get('recordings/{recording}/audio', [RecordingLibraryController::class, 'audio'])
+            ->middleware('signed')
+            ->name('recordings.audio');
     });
 
     Route::middleware('role:admin')->group(function (): void {

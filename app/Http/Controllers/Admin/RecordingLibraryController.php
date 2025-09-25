@@ -5,14 +5,22 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Recording;
 use App\Services\Recordings\RecordingLibraryService;
+use App\Services\Storage\StorageService;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class RecordingLibraryController extends Controller
 {
-    public function __construct(private readonly RecordingLibraryService $service)
+    public function __construct(
+        private readonly RecordingLibraryService $service,
+        private readonly StorageService $storage
+    )
     {
     }
 
@@ -34,6 +42,60 @@ final class RecordingLibraryController extends Controller
             'agents' => $agents,
             'piiMasking' => $piiMasking,
             'perPage' => $perPage,
+        ]);
+    }
+
+    public function show(Recording $recording): View
+    {
+        $this->authorize('view', $recording);
+
+        $detail = $this->service->detail($recording->id);
+
+        abort_if($detail === null, 404);
+
+        $piiMasking = $this->service->piiMaskingEnabled();
+        $audioUrl = URL::temporarySignedRoute(
+            'admin.recordings.audio',
+            CarbonImmutable::now()->addMinutes(5),
+            ['recording' => $recording->id]
+        );
+
+        return view('admin.recordings.show', [
+            'recording' => $detail,
+            'call' => $detail->call,
+            'transcript' => $detail->transcript,
+            'piiMasking' => $piiMasking,
+            'audioUrl' => $audioUrl,
+        ]);
+    }
+
+    public function audio(Recording $recording): BinaryFileResponse|RedirectResponse
+    {
+        $this->authorize('view', $recording);
+
+        if ($recording->status !== 'ready' || $recording->local_path === null) {
+            abort(404);
+        }
+
+        if ($recording->storage_backend === 's3') {
+            $expiresAt = CarbonImmutable::now()->addMinutes(5);
+            $temporaryUrl = $this->storage->temporaryUrl($recording->local_path, $expiresAt, 's3');
+
+            return redirect()->away($temporaryUrl);
+        }
+
+        $path = $recording->local_path;
+
+        if (! Storage::disk('local')->exists($path)) {
+            abort(404);
+        }
+
+        $fullPath = Storage::disk('local')->path($path);
+
+        return response()->file($fullPath, [
+            'Content-Type' => $this->mimeType($recording->format),
+            'Content-Disposition' => 'inline',
+            'Accept-Ranges' => 'bytes',
         ]);
     }
 
@@ -134,5 +196,17 @@ final class RecordingLibraryController extends Controller
             'has_transcript' => $data['has_transcript'] ?? null,
             'has_qa_score' => $data['has_qa_score'] ?? null,
         ];
+    }
+
+    private function mimeType(?string $format): string
+    {
+        return match (strtolower($format ?? '')) {
+            'wav' => 'audio/wav',
+            'ogg' => 'audio/ogg',
+            'opus' => 'audio/ogg',
+            'aac' => 'audio/aac',
+            'm4a' => 'audio/mp4',
+            default => 'audio/mpeg',
+        };
     }
 }
