@@ -11,3 +11,4 @@
 11 | Whisper transcription pipeline | Added Whisper API/local drivers, transcription job runner integration, and admin caps.
 12 | Admin operations dashboard | Aggregated 24-hour ingestion, failure, queue, and storage telemetry with disk alerts and log viewer.
 13 | Recording library export & filters | Added admin recording catalogue with advanced filters, pagination, and privacy-aware CSV downloads.
+14 | Genesys-style recording review workspace | Added two-pane playback/transcript detail page with signed audio streaming and Wavesurfer integration.
