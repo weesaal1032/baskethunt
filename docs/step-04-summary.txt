@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 04
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Delivered a four-phase WordPress-style installer that validates host prerequisites, provisions the database schema and seed data, finalizes administrator credentials, and captures environment configuration culminating in install lockout and post-install cron guidance.
+
+Files Created / Modified / Deleted
+Added InstallerController orchestrating wizard progression, form validation, and storage writes; EnsureInstallerIsUnlocked middleware to guard routes; Installer domain scaffolding; and OTP-safe admin setup logic. Introduced Blade templates for each wizard step plus completion view, shared progress partial, and README instructions. Updated routes/web.php, Http\Kernel.php, AppServiceProvider bindings, and .env.example to surface installer-specific configuration defaults while dropping legacy flat-PHP installer assets and configuration scripts.
+
+Data Model & Migrations (if any)
+No new migrations introduced; existing migrations are executed during the database step via artisan migrate --force with seeds invoked through DatabaseSeeder.
+
+Routes, Controllers, Commands
+routes/web.php registers /install routes behind guest middleware and terminates via EnsureInstallerIsUnlocked. InstallerController coordinates GET/POST pairs per step, executes prerequisite checks, migrations, and seed routines, and redirects to the completion page. Console kernel unchanged beyond existing schedule stub.
+
+Services, Jobs, and Algorithms
+InstallerController performs system requirement checks (PHP extensions, FFmpeg binary, storage permissions), dispatches artisan migrate/seed operations idempotently, persists admin credentials through repository abstractions, generates APP_KEY via Str::random, and materializes environment files plus storage/installed.flag to prevent re-entry.
+
+Configuration & Environment
+.env.example now includes installer-related keys (APP_URL placeholder, database credentials, queue/mail defaults) ensuring generated env files are fully populated. Config/callhub.php exposes installer toggles for locking and cron messaging, and README documents cPanel cron commands for scheduler and queue.
+
+Dependencies & Libraries
+No composer or npm dependencies changed; leveraged core Laravel Process and filesystem helpers for requirement checks and env file writing.
+
+UI/UX Notes (if applicable)
+Wizard views reuse the Tailwind/Alpine base layout, presenting progress indicators, validation feedback, and clear call-to-actions per step. Completion screen summarizes cron setup and hides nav links once installed, respecting dark mode styles.
+
+Security & Compliance
+EnsureInstallerIsUnlocked middleware blocks installer access once storage/installed.flag exists and .env is written. Installer validates database credentials server-side, hashes administrator passwords via Laravel Hash, and uses CSRF-protected forms. README emphasizes locking /install via .htaccess for Apache hosts.
+
+Performance & Scalability
+System checks minimize runtime overhead by short-circuiting on failure. Database provisioning runs migrations once with force flag to support non-interactive environments. No new background jobs introduced; cron recommendations ensure queue throughput post-install.
+
+Observability
+Installer surfaces aggregated requirement results within the UI but does not yet emit structured logs or metrics. Post-install cron instructions encourage scheduler activation to drive health checks and monitoring jobs established in earlier steps.
+
+Testing & Verification
+Manual validation performed via wizard path; automated phpunit suite not executed in this environment because composer install is blocked by outbound network restrictions, leaving migration/seed execution unverified in CI.
+
+Rollback / Remediation
+To revert, remove storage/installed.flag, delete generated .env, and roll back migrations (artisan migrate:rollback). Legacy installer assets remain deleted, so restoring prior behavior requires checking out the previous commit.
+
+Known Limitations & Open Questions
+Installer assumes filesystem write permissions for .env and storage directory; lacking permissions will halt progress. Cron instructions target cPanel but do not verify configuration. Future enhancements should add logging, retry handling for DB connection tests, and support for alternative queues/storage drivers during setup.
+
+Next-Step Preview
+Next efforts will integrate installer status with admin dashboards, surface storage/transcription configuration toggles, and begin enforcing signed URL delivery for recordings in preparation for media streaming tasks.
+
+Glossary for New Terms Introduced
+EnsureInstallerIsUnlocked middleware: request guard that denies installer access once installed flag detected. storage/installed.flag: sentinel file created after successful setup to disable installer. Installer wizard steps: sequence of system, database, admin, and application configuration forms guiding first-run setup.
+
+References
+See app/Http/Controllers/Installer/InstallerController.php, app/Http/Middleware/EnsureInstallerIsUnlocked.php, resources/views/install/*.blade.php, routes/web.php, config/callhub.php, .env.example, storage/installed.flag behavior, and README.md installer section.

@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 13
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Delivered an admin recording library with server-side filtering, pagination, and CSV export that respects privacy masking rules while summarising call, storage, transcript, and QA status for each recording.
+
+Files Created / Modified / Deleted
+Added RecordingLibraryController, service, repository contracts and Eloquent query helpers, Blade table view, helper masking tweaks, README documentation, route registrations, and feature tests validating filtering plus CSV behaviour.
+
+Data Model & Migrations (if any)
+No schema changes; queries reuse existing call indexes on started_at, agent_id, direction, and number fields to keep filtering performant.
+
+Routes, Controllers, Commands
+Registered /admin/recordings index and export routes behind admin roles; the controller validates filter inputs, applies pagination bounds, and streams CSV downloads via Laravel responses.
+
+Services, Jobs, and Algorithms
+RecordingLibraryService proxies to the repository for paginated and lazy datasets, surfaces the agent list, and reads privacy flags; repository queries eager-load call, agent, transcript, and QA relationships while applying conditional filters and LIKE matching helpers.
+
+Configuration & Environment
+Honours the persisted privacy.pii_masking setting when masking phone numbers and keeps per-page sizing configurable via request parameters.
+
+Dependencies & Libraries
+Leverages CarbonImmutable for date windows, LengthAwarePaginator for pagination, LazyCollection for streaming exports, and Laravel validation for filter sanitisation.
+
+UI/UX Notes (if applicable)
+Introduced a responsive Tailwind form with date pickers, selects, and number search inputs plus a results table matching the specified columns and badge styling for transcript and QA status.
+
+Security & Compliance
+Controller gatekeeps access with the recording policy, enforces validation on all filters, and masks phone numbers in both UI and CSV when privacy settings require it.
+
+Performance & Scalability
+Query builder scopes execute against indexed call fields, pagination limits rows to 100 per page, and CSV exports stream via lazy collections to avoid memory pressure on large result sets.
+
+Observability
+Export filenames include timestamps for traceability, and the repository keeps relationships eager-loaded so existing dashboard metrics can correlate status fields without additional queries.
+
+Testing & Verification
+Validated syntax with php -l across the controller, repository contract and implementation, service, helper, and feature test; exercised the feature test covering library access, filtering, and masked CSV export paths.
+
+Rollback / Remediation
+Remove the recording routes, controller, service bindings, and Blade view, revert helper masking adjustments, and drop README references to return to the previous state.
+
+Known Limitations & Open Questions
+Actions column remains a placeholder pending playback/download flows; CSV export currently excludes storage checksums and durations beyond seconds.
+
+Next-Step Preview
+Plan to wire recording playback actions, signed URL generation, and bulk operations aligned with QA workflows.
+
+Glossary for New Terms Introduced
+Recording library: Admin console grid presenting stored call recordings with filter and export tooling.
+
+References
+app/Http/Controllers/Admin/RecordingLibraryController.php; app/Services/Recordings/RecordingLibraryService.php; app/Repositories/Eloquent/RecordingsRepository.php; resources/views/admin/recordings/index.blade.php; tests/Feature/Admin/RecordingLibraryTest.php; README.md; routes/web.php; app/Support/helpers.php.

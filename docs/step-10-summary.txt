@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 10
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Implemented the cPanel-friendly jobs:run worker and hardened DownloadRecordingJob so queued recordings stream from providers into temporary storage, verify integrity, transcode to MP3, persist through the pluggable storage service, and enqueue downstream transcription once assets are ready.
+
+Files Created / Modified / Deleted
+Added app/Console/Commands/RunJobsCommand.php to poll domain jobs and dispatch synchronous download processing with retry-aware bookkeeping; expanded app/Jobs/DownloadRecordingJob.php with streaming, checksum, waveform, storage, transcription, and retry logic; updated app/Console/Kernel.php to schedule the worker; enriched app/Services/Calls/CallIngestionService.php to pass domain job identifiers; refreshed config/callhub.php, .env.example, and README.md to surface FFmpeg and cron configuration; and extended associated tests, documentation, and storage utilities.
+
+Data Model & Migrations (if any)
+No database schema changes were necessary; the existing jobs, recordings, and settings tables capture execution status, storage metadata, and transcription toggles used by the new workflow.
+
+Routes, Controllers, Commands
+Registered the jobs:run Artisan command that can run once or continuously with configurable sleep/max values and added a scheduler entry to execute it every minute without overlap, allowing cPanel cron to drain download jobs without a resident worker.
+
+Services, Jobs, and Algorithms
+DownloadRecordingJob now streams remote audio via the HTTP client into temp files, validates content-length, hashes contents, detects formats, and conditionally transcodes through FFmpeg before persisting via StorageService; it generates lightweight waveform arrays, marks domain job states with exponential backoff, and enqueues transcription jobs only when enabled and absent to maintain idempotency.
+
+Configuration & Environment
+Introduced FFMPEG_BINARY overrides in config/callhub.php and .env.example, documented the required cron pair (poll:calls + jobs:run) and storage/log paths in README.md, and reinforced SettingsService usage for transcription feature flags.
+
+Dependencies & Libraries
+Relies on Symfony\Component\Process to invoke FFmpeg and Laravel's HTTP streaming facilities; no composer or npm dependencies were added beyond existing vendor packages and the external FFmpeg binary requirement.
+
+UI/UX Notes (if applicable)
+No new user interfaces were added; operators interact with the worker indirectly through scheduler/cron configuration and existing admin telemetry.
+
+Security & Compliance
+Downloads respect existing RBAC by requiring domain job creation paths, avoid writing secrets to logs, scrub temporary files after use, and honour storage backend selection so recordings remain private with signed URL access.
+
+Performance & Scalability
+Streamed downloads avoid loading entire files into memory, FFmpeg transcoding is isolated to temporary files, waveform generation samples fixed segments, and exponential retry scheduling prevents hammering providers on repeated failures.
+
+Observability
+Domain job records log attempts, statuses, and errors; DownloadRecordingJob emits structured error logs and updates recording status fields, while scheduler wiring ensures health dashboards can reflect ready/pending ratios via existing models.
+
+Testing & Verification
+Executed php -l syntax checks for DownloadRecordingJob, RunJobsCommand, CallIngestionService, Console Kernel, and callhub config; full Pest execution remains blocked in-container by vendor binary installation limits.
+
+Rollback / Remediation
+To revert the feature, remove the jobs:run command and scheduler entry, restore DownloadRecordingJob to a stub, drop FFmpeg-specific configuration/env guidance, and clear any queued download/transcription jobs that rely on the expanded payload structure.
+
+Known Limitations & Open Questions
+Waveform generation uses a byte-sampling heuristic rather than audio-aware processing, transcription jobs remain unimplemented, and FFmpeg availability is assumed without runtime detection beyond configuration overrides.
+
+Next-Step Preview
+Build the transcription worker pipeline, surface waveform previews and download telemetry in the admin UI, and extend health reporting with job attempt counters.
+
+Glossary for New Terms Introduced
+jobs:run worker: Artisan command that drains domain job records to execute recording downloads in cron-friendly environments.
+
+References
+See app/Console/Commands/RunJobsCommand.php, app/Jobs/DownloadRecordingJob.php, app/Console/Kernel.php, config/callhub.php, README.md, and tests covering storage services.

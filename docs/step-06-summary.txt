@@ -1,0 +1,56 @@
+Step Metadata
+Step number: 06
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Expanded the administrator settings experience to cover telephony provider, storage backend, transcription engine, notification channels, and privacy retention, wiring everything through the SettingsService with config fallbacks, secret preservation, and runtime config hydration.
+
+Files Created / Modified / Deleted
+Updated app/Http/Controllers/Admin/SettingsController.php, app/Services/Settings/SettingsService.php, resources/views/admin/settings/general.blade.php, config/callhub.php, config/filesystems.php, config/transcription.php, config/mail.php, tests/Feature/Admin/SettingsTest.php, tests/Unit/Services/SettingsServiceTest.php, README.md, and related config binding to support the expanded settings scope.
+
+Data Model & Migrations (if any)
+No database schema changes were required; the existing settings table continues to persist the additional keys as serialized strings or JSON.
+
+Routes, Controllers, Commands
+Reused the /admin/settings/general GET and POST endpoints while overhauling SettingsController to orchestrate tabbed sections, conditional validation, secret retention, and config cache hydration after persistence. No artisan commands were added in this step.
+
+Services, Jobs, and Algorithms
+SettingsService gained a comprehensive config fallback map covering telephony, storage, transcription, notifications, and privacy keys, along with bulk setters and JSON encoding/decoding for complex payloads like rate limits. Secret retention helpers ensure sensitive values persist when inputs are omitted.
+
+Configuration & Environment
+Runtime config() values for app metadata, filesystem disks, transcription drivers, mailer credentials, Slack webhook, and CallHub domain config are refreshed immediately after saves. Secrets remain in the database rather than being written to .env, with config fallbacks populating defaults from callhub.* stubs.
+
+Dependencies & Libraries
+No new composer or npm dependencies were introduced; the feature relies on existing Laravel validation, facades, and Blade/Alpine components.
+
+UI/UX Notes (if applicable)
+The admin settings Blade view now renders a tabbed interface with AlpineJS state to toggle sections, masks sensitive inputs with placeholders, conditionally reveals S3 and transcription fields, and aligns with the Tailwind-powered layout for dark mode and responsiveness.
+
+Security & Compliance
+Access remains restricted to authenticated admins; validators enforce required combinations (e.g., S3 credentials when S3 selected, Whisper API keys when remote engine chosen). Password and token fields are masked, secrets are never echoed back, and privacy toggles default to masking PII.
+
+Performance & Scalability
+SettingsService caching minimizes repeated lookups, and JSON support allows large rate-limit payloads without schema changes. Runtime config hydration avoids reboots when adjusting integrations.
+
+Observability
+While no new metrics were added, the health endpoints can now pull telephony and storage config through the augmented settings keys, enabling future health diagnostics to reflect administrator changes.
+
+Testing & Verification
+Added Pest feature coverage ensuring admins can submit multi-section payloads, secrets persist when left blank, and validation errors trigger for missing secrets. Unit tests exercise SettingsService fallbacks. PHP linting via php -l on modified PHP files was executed; full Pest runs remain blocked pending vendor installation.
+
+Rollback / Remediation
+To revert, restore the prior SettingsController, SettingsService, Blade view, and config stubs from version control. Cached config can be cleared with php artisan config:clear. No migrations require rollback.
+
+Known Limitations & Open Questions
+Secrets stay in plaintext within the settings table pending encryption at rest. There is no audit log of configuration changes, health integration still needs to surface validation results, and .env sync for mail/storage remains manual.
+
+Next-Step Preview
+Upcoming work will extend health diagnostics to consume these settings, introduce secret encryption and audit trails, and integrate the configuration with job dispatchers and storage adapters.
+
+Glossary for New Terms Introduced
+Poll window days: Number of trailing days ingested from the telephony API during scheduled polling runs.
+PII masking toggle: Administrator-controlled flag determining whether UI layers redact customer identifiers.
+
+References
+app/Http/Controllers/Admin/SettingsController.php; app/Services/Settings/SettingsService.php; resources/views/admin/settings/general.blade.php; config/callhub.php; config/filesystems.php; config/transcription.php; config/mail.php; tests/Feature/Admin/SettingsTest.php; tests/Unit/Services/SettingsServiceTest.php; README.md.

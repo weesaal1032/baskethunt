@@ -1,0 +1,56 @@
+Step Metadata
+Step number: 08
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Delivered a configurable telephony provider abstraction backed by a GenericRestClient that hydrates endpoints, headers, query defaults, pagination cursors, and exponential backoff settings from administrator-managed values while surfacing an admin mapping workspace to align remote payloads with CallHub call schemas and run live connectivity previews.
+
+Files Created / Modified / Deleted
+Introduced app/Services/Providers/TelephonyClientInterface.php as the contract for telephony integrations, app/Services/Providers/GenericRestClient.php with rate-limit aware request handling and payload mapping, supporting exception and value object classes under app/Services/Providers/Exceptions and app/Services/Providers/ValueObjects, the admin orchestration controller in app/Http/Controllers/Admin/TelephonyProviderController.php, a dedicated Blade mapping interface at resources/views/admin/providers/mapping.blade.php, route registrations in routes/web.php, .env.example seeds for telephony defaults, and coverage in tests/Feature/Admin/Providers/TelephonyProviderControllerTest.php plus tests/Unit/Services/Providers/GenericRestClientTest.php alongside README.md updates describing the provider client.
+
+Data Model & Migrations (if any)
+No database schema changes were required; provider credentials and mapping metadata persist via the existing settings table.
+
+Routes, Controllers, Commands
+Added admin-only routes under /admin/providers/telephony/* that render the mapping screen, persist configuration, and run preview calls, all handled by TelephonyProviderController which gates previews behind validation and flash messaging.
+
+Services, Jobs, and Algorithms
+GenericRestClient builds PendingRequest instances from SettingsService values, merges custom headers with derived authentication, applies poll windows and cursor pagination to listCalls, resolves recording URLs, and retries 429/5xx responses with configurable exponential backoff while logging sanitized metrics; TelephonyCallPage conveys mapped call collections, cursors, and raw payloads back to callers.
+
+Configuration & Environment
+Expanded .env.example with CALLHUB_TELEPHONY_* keys and wired config/callhub.php telephony defaults so SettingsService fallbacks mirror installer and admin form values without exposing secrets in responses.
+
+Dependencies & Libraries
+Relied on Laravel's HTTP client, Carbon for window calculations, and PSR logging already bundled with the framework; no new composer or npm dependencies were added.
+
+UI/UX Notes (if applicable)
+The Providers → Telephony mapping Blade view delivers request configuration editors, mapping inputs with dot-notation guidance, and a preview table that surfaces provider responses plus pagination cursors using the existing Tailwind/Alpine design system.
+
+Security & Compliance
+Secrets remain stored in settings with masking handled by SettingsService, preview responses omit sensitive headers, logging truncates bodies to avoid leaking credentials, and controller validation enforces presence of the {callId} placeholder before exposing recording endpoints.
+
+Performance & Scalability
+Cursor-aware pagination and configurable page sizes limit result payloads, retries obey exponential backoff to respect rate limits, and mapping uses lazy collections to avoid unnecessary allocations.
+
+Observability
+Every outbound call logs duration, status, and attempt counts while failures capture sanitized bodies; preview flash messaging feeds admin feedback loops for troubleshooting provider integrations.
+
+Testing & Verification
+Executed php -l on app/Services/Providers/GenericRestClient.php, app/Http/Controllers/Admin/TelephonyProviderController.php, app/Services/Providers/TelephonyClientInterface.php, and app/Services/Providers/Exceptions/TelephonyClientException.php; attempted ./vendor/bin/pest but vendor binaries were unavailable in the container, preventing full suite execution.
+
+Rollback / Remediation
+Reverting the feature requires removing the telephony provider service files, admin controller/view, route registrations, and related documentation; settings rows can be purged with DELETE statements if stale mappings linger.
+
+Known Limitations & Open Questions
+Only a single provider mapping is supported today, payload mapping assumes JSON structures addressable via dot notation, and recording previews rely on remote URLs rather than streaming through CallHub-controlled endpoints.
+
+Next-Step Preview
+Integrate the telephony client into ingestion jobs that persist calls and recordings, expand error telemetry for provider outages, and build RBAC-protected streaming endpoints leveraging the storage service.
+
+Glossary for New Terms Introduced
+TelephonyClientInterface: Contract describing the operations required from any telephony provider adapter (call pagination and recording URL lookup).
+TelephonyCallPage: Value object wrapping mapped call records, pagination cursor tokens, and original provider payloads for downstream processing.
+
+References
+README.md “Telephony Provider Client” section and config/callhub.php telephony settings document how to configure providers and defaults.

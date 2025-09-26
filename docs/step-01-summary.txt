@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 01
+Date (UTC): 2025-09-23
+Author: CallHub scaffolding automation log
+
+High-Level Overview
+Legacy procedural PHP application replaced with Laravel 11 skeleton wired for CallHub domains, repository-driven architecture, and Tailwind/Alpine powered base UI shell.
+
+Files Created / Modified / Deleted
+Created Laravel framework directories including app, bootstrap, config, database, public, resources, routes, storage, tests. Introduced new files such as artisan, composer.json, package.json, vite.config.js, .env.example, .gitignore, README.md, domain placeholders under app/Domains, repository contracts and eloquent stubs under app/Repositories, controllers under app/Http/Controllers, middleware, providers, config stubs including callhub.php, storage_backends.php, transcription.php, base layout resources/views/layouts/base.blade.php, routes for web, api, health, console, and migration and seeder scaffolding. Deleted legacy root-level PHP scripts, install wizard, and SQL migration files from previous codebase.
+
+Data Model & Migrations (if any)
+Seeded default Laravel user, password reset token, failed jobs, personal access tokens, and queue jobs migrations; no domain-specific tables yet beyond placeholders.
+
+Routes, Controllers, Commands
+Configured web prefixes for /install, /admin, /auth via InstallerController, DashboardController, and LoginController; API internal route namespace under /api/internal/status via SystemStatusController; health check route returning JSON; artisan console bootstrap with default kernel ready for queue and scheduler wiring.
+
+Services, Jobs, and Algorithms
+Established repository interface hierarchy with BaseRepository stub to support Eloquent implementations for all mandated domains; no business algorithms implemented yet beyond placeholders.
+
+Configuration & Environment
+Added .env.example with queue, database, mail, and storage placeholders; populated config stubs for callhub UI, storage backend selection, transcription driver toggles, and default Laravel configuration set; ensured CSRF token meta tags and session handling in middleware stack.
+
+Dependencies & Libraries
+Composer require block pins Laravel framework 11.x, Sanctum, Tinker with PHP 8.2; dev tools include Pest, Pest Laravel plugin, Collision, Pail, Mockery, PHPUnit; frontend assets rely on Tailwind CSS and AlpineJS via CDN and Vite scaffolding for future builds.
+
+UI/UX Notes (if applicable)
+Base Blade layout delivers responsive Tailwind shell with navigation links, flash alert messaging, CSRF meta tags, and Alpine-powered dark mode toggle storing preference in localStorage; placeholder component ready for future Genesys-style QA screen work.
+
+Security & Compliance
+Authentication routes protected through LoginController scaffolding with CSRF middleware enabled; .env usage enforced for secrets; installer segmented under /install namespace for future lock-down logic; Sanctum included for token-based auth preparation.
+
+Performance & Scalability
+Queue configuration targets database driver; repository abstraction positions app for multi-database adapters; Vite/Tailwind scaffolding prepared for optimized asset builds though production build scripts not yet executed.
+
+Observability
+Introduced health route returning structured JSON uptime signal; logging config ships with Laravel channel stack and placeholder for future structured logs; README references cPanel cron setup for scheduler and queue visibility.
+
+Testing & Verification
+Pest and PHPUnit scaffolding present with example tests but no automated suite executed during this step pending dependency installation.
+
+Rollback / Remediation
+To restore legacy application, revert repository to commit prior to Laravel scaffolding or recover removed root-level PHP scripts and SQL migrations from version control history.
+
+Known Limitations & Open Questions
+Domains contain placeholder classes without implemented business logic; installer lacks lock and persistence mechanisms; storage and transcription adapters are configuration-only without runtime drivers; Genesys-style QA UI not yet built; need decisions on RBAC, signed URL policies, and audio streaming pipeline.
+
+Next-Step Preview
+Implement installer persistence and locking, flesh out authentication guard, begin building storage adapter services, and outline QA screen components alongside RBAC policies and signed media delivery controls.
+
+Glossary for New Terms Introduced
+CallHub Domains refer to modular service boundaries such as Auth, Settings, Providers, Calls, Recordings, Transcripts, QA, Jobs, Installer, Admin, Audit, Storage, and Health to support repository-based adapters.
+
+References
+Refer to README.md Getting Started section and composer.json for dependency and setup context from this step.
