@@ -1,0 +1,68 @@
+Step Metadata
+Step number: 15
+Date (UTC): 2025-09-26
+Author: CallHub engineering log
+
+High-Level Overview
+Implemented the end-to-end QA scoring workflow including rubric authoring, version-aware drafting and submissions from the recording workspace, and reporting surfaces with CSV export for downstream analytics.
+
+Files Created / Modified / Deleted
+Introduced QA scoring and reporting controllers, services, repository aggregations, Blade workspace enhancements, Alpine components, and supporting tests spanning app/Http/Controllers/Admin/QaScoresController.php, app/Http/Controllers/Admin/QaReportsController.php, app/Services/Qa/QaScoringService.php, app/Services/Qa/QaReportingService.php, app/Repositories/Eloquent/QARepository.php, resources/views/admin/recordings/show.blade.php, resources/views/admin/qa/reports.blade.php, resources/views/admin/settings/general.blade.php, and multiple feature/unit tests under tests/Feature/Admin and tests/Unit/Services/Qa.
+
+Data Model & Migrations (if any)
+Added 2024_05_11_000010_add_rich_metadata_to_qa_scores_table.php to append versioning, status, rubric_version, responses, score_breakdown, tags, possible_score, passed, and submitted_at columns with supporting indexes; added 2024_05_11_000011_add_team_to_users_table.php to persist optional team attribution leveraged by QA reports.
+
+Routes, Controllers, Commands
+Registered POST /admin/recordings/{recording}/qa/score and GET /admin/recordings/{recording}/qa/history for draft and submission autosave APIs plus /admin/qa/reports and /admin/qa/export for dashboards and CSV streaming; QaScoresController now enforces rubric version conflicts and transforms workspace payloads while QaReportsController hydrates filters and stream-downloads exports.
+
+Services, Jobs, and Algorithms
+QaScoringService normalises persisted rubrics, clamps thresholds, seeds drafts, sanitises responses, recalculates weighted totals, and coordinates draft versus submission persistence, while QaReportingService resolves time windows, aggregates agent/team averages, generates trendlines, and proxies LazyCollection exports through the repository layer.
+
+Configuration & Environment
+SettingsController wiring now persists qa.rubric, qa.rubric_version, and qa.pass_threshold with automatic version bumps when JSON payloads change; config/callhub.php exposes default rubric metadata and thresholds consumed when no custom settings exist.
+
+Dependencies & Libraries
+Extended existing Alpine.js usage with a qaWorkspace module for autosave debounce, conflict handling, and dynamic rubric rendering, plus a qaBuilder module in the settings form for drag-and-drop rubric authoring without introducing new third-party packages.
+
+UI/UX Notes (if applicable)
+Recording detail Blade view embeds the QA pane beside transcript tools, surfacing rubric categories, weighted yes/no or scale inputs, auto-save status, pass toggles, history timeline, and tag suggestions; admin QA reports view presents responsive tables for agents, teams, trendlines, and provides one-click CSV export aligned with the Genesys-style aesthetic.
+
+Security & Compliance
+All endpoints honour existing RecordingPolicy and QaScorePolicy checks, drafts only persist for authenticated scorers, rubric JSON is sanitised server-side to strip arbitrary keys, and tag/comment inputs are length-bound to prevent oversized payloads while CSV exports respect RBAC scopes.
+
+Performance & Scalability
+Repository aggregations leverage SQL grouping with indexes on rubric_version, status, submitted_at, and users.team to accelerate report queries; draft autosave batches requests via debounced fetches and only diff recalculated payloads to minimise write load during long evaluations.
+
+Observability
+Rubric version increments and submitted_at timestamps enable temporal reporting and conflict detection, while QA reports rely on Carbon-normalised date windows that integrate with existing health dashboards without additional instrumentation.
+
+Testing & Verification
+Executed php -l against QaScoresController, QaReportsController, QaScoringService, QaReportingService, RecordingDetailTest, QaScoringTest, QaReportsTest, and related service tests; attempted to run ./vendor/bin/pest --filter=Qa but vendor binaries were unavailable in the environment.
+
+Rollback / Remediation
+Revert the QA controller, service, repository, Blade, and migration changes, roll back migrations 2024_05_11_000010 and 2024_05_11_000011, and clear compiled views to restore the pre-scoring recording workspace and reporting state.
+
+Known Limitations & Open Questions
+Agent/team dashboards currently provide tabular summaries without chart visualisations; rubric builder expects valid JSON and lacks collaborative drafts; autosave assumes stable connectivity and does not queue offline edits.
+
+Next-Step Preview
+Upcoming work will explore calibration workflows, per-category coaching notes, richer visual dashboards, and notification hooks when calls fall below threshold scores.
+
+Glossary for New Terms Introduced
+Rubric version: Incrementing integer stored with QA settings and each score to detect schema drift between saved drafts and submissions.
+
+References
+app/Http/Controllers/Admin/QaScoresController.php
+app/Http/Controllers/Admin/QaReportsController.php
+app/Services/Qa/QaScoringService.php
+app/Services/Qa/QaReportingService.php
+app/Repositories/Eloquent/QARepository.php
+resources/views/admin/recordings/show.blade.php
+resources/views/admin/qa/reports.blade.php
+resources/views/admin/settings/general.blade.php
+database/migrations/2024_05_11_000010_add_rich_metadata_to_qa_scores_table.php
+database/migrations/2024_05_11_000011_add_team_to_users_table.php
+tests/Feature/Admin/QaScoringTest.php
+tests/Feature/Admin/QaReportsTest.php
+tests/Unit/Services/Qa/QaScoringServiceTest.php
+tests/Unit/Services/Qa/QaReportingServiceTest.php
