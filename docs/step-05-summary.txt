@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 05
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Introduced the first production-backed configuration surface by persisting general application settings to the database, exposing a reusable service and helper for runtime consumption, and delivering an administrator-only UI for editing site metadata with validation and env/config fallbacks.
+
+Files Created / Modified / Deleted
+Added Settings model, migration, repository binding, and helper autoload wiring; delivered SettingsService encapsulating read/write logic with caching; introduced Admin\SettingsController and Blade view for the general settings screen; registered /admin/settings/general routes; extended README guidance; and produced feature/unit tests validating persistence and fallback semantics.
+
+Data Model & Migrations (if any)
+Created 2024_05_11_000009_create_settings_table adding an auto-increment id, unique key column, longText value field, and timestamps for auditability. No other schemas changed.
+
+Routes, Controllers, Commands
+routes/web.php now mounts GET/POST handlers for /admin/settings/general guarded by auth plus role:admin middleware. SettingsController fetches stored values, supplies timezone options, validates requests, and persists updates before redirecting with flash messaging. No artisan commands were added.
+
+Services, Jobs, and Algorithms
+SettingsService centralizes configuration retrieval, caching results per key, encoding complex values as JSON, and falling back to config() or env() when no record exists. setMany() supports bulk persistence for the controller workflow. No asynchronous jobs were introduced.
+
+Configuration & Environment
+composer.json autoloads app/Support/helpers.php providing the global setting() helper so Blade templates and services can resolve keys consistently. Persisted app.name, app.timezone, and app.url values override .env/config defaults immediately after save.
+
+Dependencies & Libraries
+No composer or npm dependencies changed; the feature relies solely on existing Laravel Eloquent, validation, and support components.
+
+UI/UX Notes (if applicable)
+resources/views/admin/settings/general.blade.php presents a Tailwind-styled card with inputs for site name, timezone selector populated from PHP timezone identifiers, and canonical application URL, following the base layout’s dark-mode aware styling and flash messaging.
+
+Security & Compliance
+Access is limited to authenticated administrators via middleware. Requests enforce CSRF tokens and Laravel validator rules to sanitize inputs before persistence, preventing invalid URLs or missing required fields.
+
+Performance & Scalability
+Service-level caching avoids repeated database lookups per request. Value storage in longText accommodates future JSON payloads without schema changes. No additional load-generating jobs were added.
+
+Observability
+The step did not add new logging, metrics, or health probes; configuration changes rely on existing Laravel log channels for error reporting.
+
+Testing & Verification
+Added tests/Feature/Admin/SettingsTest covering form rendering and successful updates plus tests/Unit/Services/SettingsServiceTest ensuring config fallbacks resolve when no database row exists. Full phpunit execution remains blocked until composer install can succeed in the constrained environment.
+
+Rollback / Remediation
+To revert, roll back the settings migration (php artisan migrate:rollback --path=database/migrations/2024_05_11_000009_create_settings_table.php), remove the Settings model/service/controller/helper additions, and delete associated routes and views. Cached config values would then fall back to .env defaults.
+
+Known Limitations & Open Questions
+Current UI only covers general metadata; telephony provider, storage, transcription, notifications, and privacy settings remain unimplemented. There is no env writer synchronization for settings requiring .env updates, and no audit trail for configuration changes.
+
+Next-Step Preview
+Upcoming work will extend the settings module to cover telephony integrations, storage/transcription backends, notification channels, and privacy retention policies while wiring values into health reporting.
+
+Glossary for New Terms Introduced
+setting() helper: globally-available function resolving configuration keys via SettingsService with DB-first precedence. SettingsService: service layer orchestrating persistence, caching, and env/config fallbacks for key/value settings.
+
+References
+See database/migrations/2024_05_11_000009_create_settings_table.php, app/Models/Settings.php, app/Services/Settings/SettingsService.php, app/Http/Controllers/Admin/SettingsController.php, app/Support/helpers.php, resources/views/admin/settings/general.blade.php, routes/web.php, tests/Feature/Admin/SettingsTest.php, tests/Unit/Services/SettingsServiceTest.php, README.md.

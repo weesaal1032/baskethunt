@@ -1,0 +1,56 @@
+Step Metadata
+Step number: 07
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Implemented a pluggable storage layer that routes call recordings through local or S3-compatible disks, standardizes dated key naming, and exposes temporary access URLs alongside migration utilities for backend switching.
+
+Files Created / Modified / Deleted
+Created app/Services/Storage/StorageService.php to coordinate driver selection, persistence, retrieval, and migrations; added driver implementations under app/Services/Storage/Drivers plus the StoredRecording value object; extended config/storage_backends.php, config/filesystems.php, and .env.example to surface S3 credentials; refreshed README storage guidance; and introduced unit tests in tests/Unit/Services/Storage covering local, S3, and migration paths.
+
+Data Model & Migrations (if any)
+No schema changes were required because recordings persist metadata in the existing database tables; all work operated at the filesystem abstraction layer.
+
+Routes, Controllers, Commands
+No new HTTP routes or artisan commands were added. Recording access remains mediated through future controller work that will call the new storage service.
+
+Services, Jobs, and Algorithms
+StorageService lazily resolves drivers from configuration or administrator settings, sanitizes provider call identifiers, enforces private visibility, and streams migrations between disks with optional source cleanup. AbstractStorageDriver centralizes input validation, deterministic path construction (recordings/YYYY/MM/DD/<id>.ext), and consistent write semantics while concrete drivers extend temporary URL behavior.
+
+Configuration & Environment
+Added AWS-style credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_BUCKET, AWS_URL, AWS_USE_PATH_STYLE_ENDPOINT) to .env.example and wired config/storage_backends.php defaults so administrators can toggle between local and S3 disks without redeploying. Filesystems configuration now ensures the S3 disk uses private ACLs and honors optional prefixing from settings.
+
+Dependencies & Libraries
+Relied solely on Laravel's filesystem manager and Flysystem S3 adapter already bundled with the framework; no additional composer or npm packages were introduced in this step.
+
+UI/UX Notes (if applicable)
+No user interface changes shipped. Future admin screens leverage previously delivered tabs to select the desired storage backend.
+
+Security & Compliance
+Recordings are written with private visibility by default, generated signed URLs expire based on caller-provided timestamps, and migration flows avoid leaving residual copies when deletion is enabled. Identifier sanitization prevents directory traversal or unsafe characters in object keys.
+
+Performance & Scalability
+Path normalization organizes recordings under date-based shards to keep directories manageable, and driver caching prevents repeated instantiation. Streaming migrations reuse readStream/write to avoid loading entire objects into memory.
+
+Observability
+No new telemetry endpoints were added; upcoming health checks can inspect storage configuration through the SettingsService.
+
+Testing & Verification
+Added Pest unit coverage verifying local driver persistence and sanitization, S3 key naming and signed URLs, and service-level migrations between disks. Full Pest execution remains pending due to missing vendor binaries in the execution environment, but php -l linting validated the new PHP files.
+
+Rollback / Remediation
+Reverting the storage feature only requires removing the new service, drivers, configuration keys, and README guidance; the database schema and existing recordings remain unaffected. If migrations between disks fail mid-run, rerunning migrateRecording resumes using the same key paths.
+
+Known Limitations & Open Questions
+Local temporary URLs are placeholder tokens rather than real streaming endpoints; integration with a signed controller route is still required. The migration helper currently targets single files; bulk rehydration tooling may be needed for large fleets.
+
+Next-Step Preview
+Integrate the storage service into recording ingestion jobs and playback controllers, replace the local temporary URL stub with an authenticated streaming endpoint, and extend health checks to validate disk connectivity.
+
+Glossary for New Terms Introduced
+StoredRecording: lightweight data transfer object exposing disk and path metadata for persisted recordings.
+StorageDriver: interface describing the contract local and S3 adapters implement for storing, reading, migrating, and signing recordings.
+
+References
+Refer to README.md "Storage Backends" section for operator setup steps and to config/storage_backends.php for runtime disk definitions.

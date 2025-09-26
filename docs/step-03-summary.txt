@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 03
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Implemented production-ready email and password authentication with optional email-delivered one-time passwords, enforced role-based access controls across admin surfaces, and added comprehensive validation, rate limiting, and notifications to satisfy Prompt 3 requirements.
+
+Files Created / Modified / Deleted
+Added auth feature controllers (LoginController, PasswordResetLinkController, NewPasswordController, OtpController) plus Admin Dashboard wiring in routes/web.php. Expanded Http\Kernel with role middleware aliasing and registered EnsureUserHasRole implementation. Introduced OTP service, notification, and Eloquent model bindings. Extended User model with role helpers, relationships for calls, QA scores, and OTP tokens. Created UserOtpToken model and migration, and updated config/callhub.php, .env.example, README.md, and Blade templates under resources/views/auth and layouts/base.blade.php. Added RBAC policies, middleware tests, feature tests, and unit coverage under tests/Feature and tests/Unit. No legacy files deleted in this step beyond automated stub cleanup performed earlier.
+
+Data Model & Migrations (if any)
+Created database/migrations/2024_05_11_000008_create_user_otp_tokens_table.php adding user_otp_tokens with hashed codes, expiry, consumed_at tracking, and indexes on user_id plus expires_at. User factory updated for OTP flows and status defaults, and QA/call relations use existing schema from earlier steps.
+
+Routes, Controllers, Commands
+routes/web.php now exposes guest auth routes for login, password reset, and OTP verification plus authenticated logout. Admin dashboard is wrapped in auth and role middleware. Controllers orchestrate validation, rate limiting, OTP dispatch, session regeneration, and redirects. Console kernel retains scheduler stubs without new commands.
+
+Services, Jobs, and Algorithms
+App\Services\Auth\OtpService generates six-digit codes, persists bcrypt-hashed entries, sets expirations, and purges previous tokens prior to issuance. OTPController enforces attempt limits using RateLimiter, invalidates stale tokens, and logs users in post verification. Role middleware checks assigned enums against allowed lists, and policies centralize resource access checks.
+
+Configuration & Environment
+config/callhub.php gains security.email_otp toggles mapped to CALLHUB_EMAIL_OTP and CALLHUB_EMAIL_OTP_EXPIRY in .env.example. README documents enabling OTP and highlights new auth endpoints. Session regeneration and guard usage align with Laravel defaults; no additional config files were introduced.
+
+Dependencies & Libraries
+No composer or npm dependencies changed. Leveraged existing Laravel RateLimiter, Notification, and Auth facades plus Pest for new tests.
+
+UI/UX Notes (if applicable)
+Auth Blade templates render within the Tailwind base layout, showing email/password inputs, password reset forms, OTP entry, and flash messaging. Views respect dark mode toggle and include CSRF tokens, accessible labels, and inline validation messaging. Phone masking and Genesys QA workspace remain future work.
+
+Security & Compliance
+Login enforces throttling, status checks, and hashed OTP codes. OTP tokens are single-use, expire quickly, and are purged before regeneration. Policies and middleware ensure recordings, transcripts, and QA scores are visible only to authorized roles. Password reset controllers leverage Laravel validation and signed tokens; secrets remain in .env.
+
+Performance & Scalability
+OTP cleanup deletes only active records to avoid table bloat, and indexes support fast lookups by user and expiry. Rate limiting mitigates brute force, while repository abstractions keep DB-agnostic strategy intact. No background jobs introduced; future scaling will rely on database queue configured previously.
+
+Observability
+System status endpoint remains unchanged; auth flows rely on Laravel logging for exceptions. OTP and login attempts use RateLimiter counters, enabling future metric surfacing. No new dashboards or alerts added yet.
+
+Testing & Verification
+Added Pest feature tests covering password-only login, OTP-required login, incorrect password handling, and middleware gating. Unit tests assert policy permissions for recordings, transcripts, and QA scores. Automated suite was not executed in this environment because composer install cannot reach packagist under current network restrictions.
+
+Rollback / Remediation
+Reverting this step requires rolling back the commit that introduced auth controllers, policies, OTP service, and migration. Database rollback should drop user_otp_tokens and remove seeded OTP data. Clearing session state may be necessary for users stuck mid-OTP.
+
+Known Limitations & Open Questions
+OTP delivery is email-only with no SMS fallback. Settings UI toggle is not wired yet, so enabling requires env edits. Installer still lacks lock enforcement post-setup. RBAC policies currently allow readonly access to transcripts/recordings without row-level filtering. Need to ensure signed URLs and media streaming controls respect these policies.
+
+Next-Step Preview
+Build admin settings screens for OTP toggles and storage/transcription preferences, implement installer lock, introduce media streaming controllers with signed URLs, and begin constructing the Genesys-inspired QA workspace with waveform sync.
+
+Glossary for New Terms Introduced
+OTP: One-time password generated per login to satisfy optional multi-factor requirements. EnsureUserHasRole middleware: custom gate verifying a user’s role matches allowed roles for a route. UserOtpToken: table storing hashed OTP codes with expiration and consumption metadata.
+
+References
+See app/Http/Controllers/Auth/*, app/Http/Middleware/EnsureUserHasRole.php, app/Policies/*, app/Services/Auth/OtpService.php, app/Models/User.php, app/Models/UserOtpToken.php, config/callhub.php, routes/web.php, resources/views/auth/*.blade.php, README.md, and tests/Feature/Auth/LoginTest.php for implementation details.

@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 02
+Date (UTC): 2025-09-23
+Author: CallHub engineering log
+
+High-Level Overview
+Established the Laravel 11 CallHub project with modular domain scaffolding, repository contracts, configuration stubs, Tailwind/Alpine base layout, and seeded infrastructure for migrations, queueing, and environment bootstrapping.
+
+Files Created / Modified / Deleted
+Provisioned Laravel framework directories (app, bootstrap, config, database, public, resources, routes, storage, tests) plus artisan bootstrapper and Composer/NPM manifests. Added .env.example and .gitignore, generated config stubs (callhub.php, storage_backends.php, transcription.php), created controllers, middleware, domain placeholders, repository interfaces and Eloquent stubs, Blade layout, routes, migrations, factories, and seeders. Removed legacy procedural PHP entrypoints, installers, and SQL migration scripts replaced by Laravel equivalents.
+
+Data Model & Migrations (if any)
+Auth scaffolding includes users, password resets, failed jobs, personal access tokens, queue jobs, and domain-specific migrations for providers, calls, recordings, transcripts, QA scores, audits with enums, foreign keys, JSON columns, and required indexes. Seeder provisions default admin user from env plus placeholder provider record.
+
+Routes, Controllers, Commands
+Defined grouped routes for /install (InstallerController), /admin (DashboardController), /auth (LoginController), and /api/internal/status (SystemStatusController) with CSRF protection and middleware stacks configured in Http\Kernel. Registered health routes under routes/health.php and console/kernel bootstrap for scheduler and queue workers.
+
+Services, Jobs, and Algorithms
+Introduced domain classes under app/Domains/* and repository contract hierarchy with BaseRepository providing Eloquent CRUD scaffolding. Jobs queue configured for database driver; business algorithms intentionally left as placeholders pending future implementation.
+
+Configuration & Environment
+Added .env.example covering database, mail, queue, storage, transcription, and CallHub admin defaults. Registered new config files for domain toggles, storage backend selection, transcription drivers, logging, caching, and queue connection aligning with cPanel-compatible database queue.
+
+Dependencies & Libraries
+composer.json targets PHP 8.2 with laravel/framework 11.x, laravel/sanctum, pestphp/pest, collision, mockery, nunomaduro/termwind, laravel/pail; npm package.json includes Laravel Vite, Tailwind CSS, AlpineJS, autoprefixer, postcss, and Laravel-specific tooling.
+
+UI/UX Notes (if applicable)
+resources/views/layouts/base.blade.php delivers Tailwind-based responsive shell with Alpine-powered dark mode toggle, navigation scaffolding for Admin/Auth/Installer, CSRF meta tags, flash message partial, and placeholder component for future Genesys-style QA workspace.
+
+Security & Compliance
+Secrets externalized to .env; CSRF middleware registered; Sanctum prepared for token auth; installer isolated under /install namespace for later lock-down; auth controller stubs ready for RBAC enforcement; storage and transcription drivers configurable for secure credential handling.
+
+Performance & Scalability
+Database-backed queue setup ensures compatibility with cPanel cron workers; repository abstraction enables future multi-database adapters; Vite/Tailwind scaffolding ready for optimized production asset builds.
+
+Observability
+routes/health.php exposes basic JSON system status; logging configuration retains Laravel stack with channels for single/daily/ses, establishing baseline for future structured logging and alerting integration.
+
+Testing & Verification
+Pest and PHPUnit example suites generated but not executed pending dependency installation; no automated verification run in this step.
+
+Rollback / Remediation
+Revert to the pre-Laravel scaffold commit to recover legacy PHP app or restore removed files from git history; remove generated Laravel directories if reverting manually.
+
+Known Limitations & Open Questions
+Domain services and repositories are placeholders without business logic; installer lacks completion lock; storage/transcription adapters unimplemented; UI lacks Genesys-style QA interactions; RBAC, signed URLs, and media streaming guards yet to be designed.
+
+Next-Step Preview
+Implement authentication flows, finalize installer locking and admin bootstrap, build storage/transcription service adapters, and begin QA workspace UI with waveform and transcript syncing.
+
+Glossary for New Terms Introduced
+CallHub Domains: modular service boundaries (Auth, Settings, Providers, Calls, Recordings, Transcripts, QA, Jobs, Installer, Admin, Audit, Storage, Health) each owning repositories and future services.
+
+References
+See README.md Getting Started instructions, composer.json for backend dependencies, and config directory for environment toggles defined in this step.

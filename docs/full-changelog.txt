@@ -1,0 +1,15 @@
+01 | Scaffold Laravel 11 CallHub application | Replaced legacy PHP codebase with Laravel 11 skeleton, domain repositories, and Tailwind layout.
+02 | Laravel 11 modular scaffold | Added domain routes, repositories, migrations, and Tailwind layout
+03 | Authentication, OTP, and RBAC | Added email/password login with optional OTP, RBAC middleware, and authorization policies
+04 | Installer Wizard | Added four-step system checks, DB provisioning, admin setup, env writing, and install lockout
+05 | Settings module infrastructure | Added database-backed settings storage, admin form for site metadata, and runtime helper.
+06 | Expanded admin settings coverage | Added multi-tab admin form with telephony, storage, transcription, notification, and privacy persistence.
+07 | Storage backend drivers | Added pluggable storage service with local/S3 drivers, migrations utility, and configuration/docs updates.
+08 | Telephony provider client and mapping UI | Added GenericRestClient with retry/backoff plus admin mapping preview workflow.
+09 | Telephony call ingestion and polling | Added scheduled poll:calls command, ingestion service, recording download queue, and health telemetry.
+10 | Recording download worker | Streamed downloads with FFmpeg MP3 conversion, waveform capture, and transcription enqueue.
+11 | Whisper transcription pipeline | Added Whisper API/local drivers, transcription job runner integration, and admin caps.
+12 | Admin operations dashboard | Aggregated 24-hour ingestion, failure, queue, and storage telemetry with disk alerts and log viewer.
+13 | Recording library export & filters | Added admin recording catalogue with advanced filters, pagination, and privacy-aware CSV downloads.
+14 | Genesys-style recording review workspace | Added two-pane playback/transcript detail page with signed audio streaming and Wavesurfer integration.
+15 | QA scoring workflow | Added rubric builder, autosave scoring workspace, and agent/team reporting with CSV export.

@@ -1,0 +1,62 @@
+Step Metadata
+Step number: 14
+Date (UTC): 2025-09-25
+Author: CallHub engineering log
+
+High-Level Overview
+Delivered the Genesys-style recording review workspace that synchronizes waveform playback, transcript navigation, and context metadata so QA analysts can scrub, search, and annotate calls without leaving the admin portal.
+
+Files Created / Modified / Deleted
+Updated the recording library controller, service, repository contract, and Eloquent implementation to supply detail hydration and audio streaming; added the two-pane Blade view with Wavesurfer.js integration; registered signed audio routes; and extended feature coverage via the recording detail Pest suite.
+
+Data Model & Migrations (if any)
+No schema adjustments were required; existing recordings, transcripts, and QA score relationships were reused to hydrate the workspace and surface latest scoring metadata.
+
+Routes, Controllers, Commands
+Augmented /admin/recordings routing with a show endpoint and a signed /admin/recordings/{recording}/audio stream; controller logic now authorizes view access, resolves full detail via the service, issues 5-minute signed URLs, and handles local file streaming versus S3 redirects.
+
+Services, Jobs, and Algorithms
+RecordingLibraryService delegates to a new repository detail query and reads privacy masking flags from SettingsService; the repository composes eager-loaded call, agent, provider, transcript, and latest QA score data for the workspace and preserves existing pagination helpers for the index and export flows.
+
+Configuration & Environment
+Respects the persisted privacy.pii_masking toggle when formatting phone numbers and keeps signed URL expiry hard-coded to five minutes; no new environment variables were introduced.
+
+Dependencies & Libraries
+Loads Wavesurfer.js v7 from a CDN to render waveform peaks, markers, and playback controls, leveraging existing stored waveform_json payloads when present for instant visualization.
+
+UI/UX Notes (if applicable)
+Implements a responsive two-column layout with a playback pane (controls, waveform, keyboard shortcuts) and a transcript pane featuring search, auto-scroll, active segment highlighting, and copy-to-clipboard snippet actions consistent with the Genesys specification.
+
+Security & Compliance
+Enforces recording policy checks before serving detail or audio, masks phone numbers according to privacy settings, and restricts audio delivery to temporary signed routes that either stream verified local files or redirect to short-lived S3 links.
+
+Performance & Scalability
+Uses eager loading to avoid N+1 lookups, reuses precomputed waveform JSON when available, and applies smooth auto-scroll plus incremental transcript filtering without re-rendering the entire list for responsive QA reviews.
+
+Observability
+Audio responses maintain Accept-Ranges headers for client monitoring, and leveraging existing call relationships keeps downstream health dashboards informed without additional instrumentation.
+
+Testing & Verification
+Ran php -l against the recording controller, service, repository contract and implementation, routes file, and feature test; attempted to execute ./vendor/bin/pest --filter=RecordingDetailTest but vendor binaries were unavailable in the environment.
+
+Rollback / Remediation
+Revert the recording controller, repository, service, route, and Blade template changes to restore the prior library-only experience; clear cached routes and views to ensure legacy templates reload after rollback.
+
+Known Limitations & Open Questions
+QA scoring widgets are placeholders pending the rubric builder; transcript pane assumes Whisper segment JSON fidelity and currently lacks inline annotation storage; waveform markers rely on stored segment timestamps and will not display if they are missing.
+
+Next-Step Preview
+Next iteration will introduce the QA rubric builder, scoring UI, historical reports, and CSV export to complete the end-to-end QA evaluation workflow layered on top of this review workspace.
+
+Glossary for New Terms Introduced
+Wavesurfer.js: JavaScript audio waveform rendering library used for playback visualization and marker support in the QA workspace.
+Scroll lock: Temporary suppression of auto-scroll when the analyst manually clicks a transcript segment to jump playback.
+
+References
+app/Http/Controllers/Admin/RecordingLibraryController.php
+app/Repositories/Contracts/RecordingsRepositoryInterface.php
+app/Repositories/Eloquent/RecordingsRepository.php
+app/Services/Recordings/RecordingLibraryService.php
+resources/views/admin/recordings/show.blade.php
+routes/web.php
+tests/Feature/Admin/RecordingDetailTest.php
