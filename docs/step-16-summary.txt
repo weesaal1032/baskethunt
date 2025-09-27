@@ -1,0 +1,67 @@
+Step Metadata
+Step number: 16
+Date (UTC): 2025-09-27
+Author: CallHub engineering log
+
+High-Level Overview
+Implemented a comprehensive security hardening pass that tightened audio playback RBAC, masked telephony identifiers, captured audit trails for sensitive interactions, enforced installer lockdown semantics, and introduced configurable login throttling plus CLI tooling for controlled re-enablement of the setup wizard.
+
+Files Created / Modified / Deleted
+Touched authentication, recording, and installer controllers alongside supporting services, policies, helpers, configuration, routes, and documentation including app/Http/Controllers/Admin/RecordingLibraryController.php, app/Http/Controllers/Admin/QaScoresController.php, app/Http/Controllers/Auth/LoginController.php, app/Console/Commands/InstallerUnlockCommand.php, app/Policies/RecordingPolicy.php, app/Services/Audit/AuditLogger.php, app/Providers/AppServiceProvider.php, app/Support/helpers.php, config/callhub.php, routes/web.php, README.md, and tests/Feature/Admin/RecordingDetailTest.php.
+
+Data Model & Migrations (if any)
+No schema changes were required; existing audits, recordings, and settings tables were reused to persist compliance events and feature flags.
+
+Routes, Controllers, Commands
+Updated /admin/recordings/{recording} and /admin/recordings/{recording}/audio flows to honour stricter policy checks, regenerate short-lived signed URLs, and deny inactive users; surfaced InstallerUnlockCommand via artisan installer:unlock to delete storage/installed.flag under explicit confirmation so administrators can reopen the wizard intentionally.
+
+Services, Jobs, and Algorithms
+Introduced AuditLogger service that normalises metadata and writes structured audits for recording detail views, audio streams, and QA scoring submissions; LoginController now leverages configurable rate limiting and status checks before issuing sessions; helper updates ensure phone masking follows the first-two/last-three digit convention across UI render paths.
+
+Configuration & Environment
+config/callhub.php gained CALLHUB_LOGIN_ATTEMPTS, CALLHUB_LOGIN_DECAY, CALLHUB_AUDIO_URL_TTL, and CALLHUB_AUDIO_STREAM_BACKEND overrides so operators can tune throttling and signed URL lifetimes without code edits; README documents the penetration test checklist, installer unlock workflow, and new environment toggles.
+
+Dependencies & Libraries
+No new third-party dependencies were added; enhancements rely on existing Laravel rate limiter, signed URL support, and S3 storage drivers.
+
+UI/UX Notes (if applicable)
+Recording listings and detail panes now render masked numbers that expose only the first two and last three digits while preserving formatting; error messaging around locked installer access and unauthorized audio playback reflects the tightened security posture.
+
+Security & Compliance
+Controllers validate CSRF tokens, escape responses, and guard inputs; audio streaming enforces RBAC for each request before issuing minute-long signed URLs against private S3 buckets; direct bucket access remains prohibited; optional OTP continues to provide 2FA and login throttling mitigates brute force risk; AuditLogger ensures view/play/score events are retained for compliance review.
+
+Performance & Scalability
+Short-lived signed URLs reduce exposure while still leveraging CDN caching on the storage backend; rate limiter settings allow operators to balance protection with support load; helper-based masking avoids redundant formatting work in Blade loops.
+
+Observability
+Audit entries add traceability for sensitive actions, and README guidance folds the penetration-test checklist into operational procedures so teams can regularly validate defences.
+
+Testing & Verification
+Static linting executed via php -l on controllers, policies, services, providers, helpers, configuration, routes, and targeted feature tests; phpunit --filter=RecordingDetailTest was attempted but the testing binary was unavailable in the container environment.
+
+Rollback / Remediation
+Revert the affected controllers, policies, helpers, service bindings, configuration, and README updates; remove installer:unlock command registration if CLI rollback is required; purge audits generated during testing to restore the previous state and regenerate signed URL defaults.
+
+Known Limitations & Open Questions
+Audio URL TTL is globally configured and does not yet support per-request overrides; audit exports remain manual SQL operations; login throttling relies on cache-backed stores and may need tuning for high-availability deployments.
+
+Next-Step Preview
+Future work will focus on expanding automated penetration tests, implementing configurable audit retention policies, and introducing adaptive authentication controls based on device reputation.
+
+Glossary for New Terms Introduced
+Installer unlock CLI: Artisan command that removes storage/installed.flag after confirmation so the web installer can be re-run.
+
+References
+app/Console/Commands/InstallerUnlockCommand.php
+app/Http/Controllers/Admin/RecordingLibraryController.php
+app/Http/Controllers/Admin/QaScoresController.php
+app/Http/Controllers/Auth/LoginController.php
+app/Policies/RecordingPolicy.php
+app/Providers/AppServiceProvider.php
+app/Services/Audit/AuditLogger.php
+app/Support/helpers.php
+config/callhub.php
+routes/web.php
+README.md
+tests/Feature/Admin/RecordingDetailTest.php
+root@3da791a5c296:/workspace/baskethunt#
