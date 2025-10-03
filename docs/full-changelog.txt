@@ -15,3 +15,4 @@
 15 | QA scoring workflow | Added rubric builder, autosave scoring workspace, and agent/team reporting with CSV export.
 16 | Security hardening and audit logging | Masked PII, RBAC streaming guardrails, installer unlock CLI, and compliance audits.
 17 | Data retention and deletion tooling | Added nightly retention enforcement, manual call purge command, and storage cleanup audits.
+18 | Notifications and alerting | Added NotificationService with Slack/email alerts, scheduled health checks, and daily summaries.
