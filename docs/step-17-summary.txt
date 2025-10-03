@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 17
+Date (UTC): 2025-10-03
+Author: CallHub engineering log
+
+High-Level Overview
+Implemented configurable privacy retention workflows including nightly enforcement, manual deletion handling, and storage cleanup hooks so historical recordings and transcripts obey regulatory timelines.
+
+Files Created / Modified / Deleted
+Introduced retention orchestration across app/Services/Privacy/RetentionService.php with supporting data value objects, wired artisan commands in app/Console/Commands/EnforceRetentionCommand.php and DeleteCallDataCommand.php, extended scheduling in app/Console/Kernel.php, updated privacy settings plumbing in app/Http/Controllers/Admin/SettingsController.php, app/Services/Settings/SettingsService.php, resources/views/admin/settings/general.blade.php, config/callhub.php, and .env.example, enabled soft deletes in app/Models/Recording.php and app/Models/Transcript.php, refined repositories at app/Repositories/Eloquent/RecordingsRepository.php, and documented the workflow in README.md alongside new console feature tests under tests/Feature/Console and unit coverage for the service data objects.
+
+Data Model & Migrations (if any)
+Migration 2024_05_11_000012_add_soft_deletes_to_recordings_and_transcripts_table.php now appends deleted_at columns plus indexes for both tables so retention can stage purges; models adopt SoftDeletes to respect the new lifecycle without altering foreign keys.
+
+Routes, Controllers, Commands
+No HTTP routes changed, but two artisan entry points were added: privacy:enforce-retention for scheduled sweeps with optional --dry-run, and privacy:delete-call for single-call erasure requests; the console kernel schedules the nightly retention pass at 02:15 UTC.
+
+Services, Jobs, and Algorithms
+RetentionService streams candidate recordings via repository lazy collections, applies configurable retention and grace windows, soft deletes or force purges records, prunes storage objects through StorageService, and records compliance events with AuditLogger; deleteCall orchestrates cascades across transcripts and QA scores while tolerating dry runs.
+
+Configuration & Environment
+Settings and config map privacy.retention_months and the new privacy.deletion_grace_days to env toggles (CALLHUB_RETENTION_MONTHS, CALLHUB_DELETION_GRACE_DAYS) while surfacing deletion grace controls in the admin settings form.
+
+Dependencies & Libraries
+No additional packages were introduced; functionality builds on existing Laravel lazy collections, SoftDeletes, and Carbon date helpers.
+
+UI/UX Notes (if applicable)
+Admin Settings gains retention inputs grouped under Privacy & Retention, with helper text clarifying grace periods; no new front-end frameworks were required.
+
+Security & Compliance
+Every soft delete, purge, or manual deletion emits structured audit events, ensuring privacy actions are traceable and aligned with data subject request obligations; storage objects are removed from the active backend to prevent orphaned assets.
+
+Performance & Scalability
+Lazy chunk iteration avoids loading entire historical datasets, and storage deletions occur per-recording to limit memory pressure; retention windows are configurable to balance compliance with storage consumption.
+
+Observability
+Console output surfaces counts for soft deletes and purges during enforcement, Laravel logs record dry-run versus actual deletions, and audits provide ongoing visibility into privacy actions.
+
+Testing & Verification
+Automated phpunit or Pest suites were not executed because vendor binaries remain unavailable in the container environment; verification relied on static analysis and code review.
+
+Rollback / Remediation
+Disable the scheduled job via console kernel or .env overrides, restore from backups, and rerun privacy:enforce-retention --dry-run to confirm state before re-enabling; removed data cannot be recovered without prior snapshots.
+
+Known Limitations & Open Questions
+No UI exists yet for operators to trigger individual deletions, retention executes serially which may need batching for very large archives, and dry-run output depends on log ingestion for audit trails.
+
+Next-Step Preview
+Future work will expose privacy deletion workflows in the admin UI, add alerting when retention fails, and expand automated coverage once the PHP testing toolchain is available.
+
+Glossary for New Terms Introduced
+Retention grace period: buffer days between soft deletion and permanent purge allowing recovery; Dry run: execution mode that logs actions without mutating data.
+
+References
+See README.md retention section and config/callhub.php privacy defaults for operator guidance.
