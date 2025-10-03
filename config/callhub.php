@@ -182,5 +182,6 @@ return [
     'privacy' => [
         'pii_masking' => env('CALLHUB_PRIVACY_PII_MASKING', true),
         'retention_months' => env('CALLHUB_RETENTION_MONTHS', 12),
+        'deletion_grace_days' => env('CALLHUB_DELETION_GRACE_DAYS', 14),
     ],
 ];

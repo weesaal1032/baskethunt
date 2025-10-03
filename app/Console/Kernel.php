@@ -11,6 +11,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('poll:calls')->everyFiveMinutes()->withoutOverlapping();
         $schedule->command('jobs:run --once --max=10')->everyMinute()->withoutOverlapping();
+        $schedule->command('privacy:enforce-retention')->dailyAt('02:15')->withoutOverlapping();
     }
 
     protected function commands(): void

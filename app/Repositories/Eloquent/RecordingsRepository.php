@@ -217,4 +217,31 @@ final class RecordingsRepository extends BaseRepository implements RecordingsRep
             ->whereColumn('calls.id', 'recordings.call_id')
             ->limit(1);
     }
+
+    public function retentionCandidates(CarbonImmutable $cutoff): LazyCollection
+    {
+        return Recording::query()
+            ->with([
+                'transcript' => fn (Builder $query) => $query->withTrashed(),
+                'call:id,provider_call_id,started_at',
+            ])
+            ->whereNull('deleted_at')
+            ->whereHas('call', function (Builder $callQuery) use ($cutoff): void {
+                $callQuery->where('started_at', '<', $cutoff);
+            })
+            ->orderBy('id')
+            ->lazy();
+    }
+
+    public function purgeCandidates(CarbonImmutable $purgeBefore): LazyCollection
+    {
+        return Recording::onlyTrashed()
+            ->with([
+                'transcript' => fn (Builder $query) => $query->withTrashed(),
+                'call:id,provider_call_id,started_at',
+            ])
+            ->where('deleted_at', '<=', $purgeBefore)
+            ->orderBy('id')
+            ->lazy();
+    }
 }

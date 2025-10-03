@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Recording extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $guarded = [];
 
@@ -24,6 +26,6 @@ class Recording extends Model
 
     public function transcript(): HasOne
     {
-        return $this->hasOne(Transcript::class);
+        return $this->hasOne(Transcript::class)->withTrashed();
     }
 }

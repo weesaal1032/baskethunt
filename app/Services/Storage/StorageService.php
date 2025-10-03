@@ -84,6 +84,17 @@ class StorageService
         return new StoredRecording($target->name(), $path);
     }
 
+    public function deleteRecording(string $path, ?string $driver = null): void
+    {
+        if ($path === '') {
+            return;
+        }
+
+        $driverName = $driver ?? $this->resolveDefaultDriver();
+
+        $this->driver($driverName)->delete($path);
+    }
+
     private function resolveDefaultDriver(): string
     {
         $configured = $this->settings->get('storage.default');

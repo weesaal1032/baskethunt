@@ -3,6 +3,7 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\Recording;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\LazyCollection;
@@ -22,4 +23,8 @@ interface RecordingsRepositoryInterface extends RepositoryInterface
     public function agentsForLibrary(): Collection;
 
     public function findForDetail(int $id): ?Recording;
+
+    public function retentionCandidates(CarbonImmutable $cutoff): LazyCollection;
+
+    public function purgeCandidates(CarbonImmutable $purgeBefore): LazyCollection;
 }

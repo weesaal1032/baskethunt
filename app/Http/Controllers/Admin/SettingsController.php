@@ -55,6 +55,7 @@ class SettingsController extends Controller
             'notifications.slack.webhook',
             'privacy.pii_masking',
             'privacy.retention_months',
+            'privacy.deletion_grace_days',
             'qa.rubric',
             'qa.pass_threshold',
             'qa.rubric_version',
@@ -127,6 +128,7 @@ class SettingsController extends Controller
             'privacy' => [
                 'pii_masking' => $this->normalizeBool($values['privacy.pii_masking'] ?? true),
                 'retention_months' => (int) ($values['privacy.retention_months'] ?? 12),
+                'deletion_grace_days' => (int) ($values['privacy.deletion_grace_days'] ?? 14),
             ],
             'qa' => [
                 'rubric' => $qaRubric,
@@ -201,6 +203,7 @@ class SettingsController extends Controller
             'notifications_slack_webhook' => ['nullable', 'url'],
             'privacy_pii_masking' => ['nullable', 'boolean'],
             'privacy_retention_months' => ['required', 'integer', 'min:1', 'max:360'],
+            'privacy_deletion_grace_days' => ['required', 'integer', 'min:1', 'max:365'],
             'qa_rubric' => ['required', 'string'],
             'qa_pass_threshold' => ['required', 'integer', 'min:0', 'max:100'],
         ]);
@@ -291,6 +294,7 @@ class SettingsController extends Controller
 
         $piiMasking = $request->boolean('privacy_pii_masking');
         $retentionMonths = (int) $data['privacy_retention_months'];
+        $deletionGraceDays = (int) $data['privacy_deletion_grace_days'];
         $qaPassThreshold = (int) $data['qa_pass_threshold'];
         $rubric = $rubricPayload;
         $rubricChanged = json_encode($currentRubric) !== json_encode($rubric);
@@ -332,6 +336,7 @@ class SettingsController extends Controller
             'notifications.slack.webhook' => $data['notifications_slack_webhook'] ?? null,
             'privacy.pii_masking' => $piiMasking ? '1' : '0',
             'privacy.retention_months' => $retentionMonths,
+            'privacy.deletion_grace_days' => $deletionGraceDays,
             'qa.rubric' => $rubric,
             'qa.pass_threshold' => $qaPassThreshold,
             'qa.rubric_version' => $rubricVersion,
@@ -395,6 +400,7 @@ class SettingsController extends Controller
             'callhub.notifications.slack.webhook' => $data['notifications_slack_webhook'] ?? null,
             'callhub.privacy.pii_masking' => $piiMasking,
             'callhub.privacy.retention_months' => $retentionMonths,
+            'callhub.privacy.deletion_grace_days' => $deletionGraceDays,
             'callhub.qa.rubric' => $rubric,
             'callhub.qa.pass_threshold' => $qaPassThreshold,
             'callhub.qa.rubric_version' => $rubricVersion,

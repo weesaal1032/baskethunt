@@ -67,6 +67,13 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - Admins can configure general metadata, telephony provider credentials, storage backends, transcription engines, notification channels, and privacy retention windows at `/admin/settings/general`. Values persist to the `settings` table via `SettingsService`, refresh runtime configuration, and mask stored secrets.
 - The global `setting('app.name')` helper resolves configuration with database values first and falls back to `.env`/config, simplifying consumption inside Blade templates, services, and jobs.
 
+## Privacy & Retention
+
+- Retention windows are defined by **Retention (months)** and the **Deletion grace period (days)** fields on the Privacy & Retention tab. `CALLHUB_RETENTION_MONTHS` and `CALLHUB_DELETION_GRACE_DAYS` seed the defaults for fresh installs.
+- `php artisan privacy:enforce-retention --dry-run` simulates the nightly cleanup, logging which recordings/transcripts would be soft deleted or purged without mutating data. Omit `--dry-run` to apply changes immediately.
+- The scheduler runs `privacy:enforce-retention` at 02:15 server time each day, soft-deleting recordings older than the retention window and permanently purging those beyond the grace period while removing storage objects and emitting audit entries.
+- Fulfil “delete my data” requests with `php artisan privacy:delete-call {callId}` (optionally `--dry-run`). The command removes call metadata, recordings, transcripts, QA scores via cascades, and storage assets while logging to the audits ledger.
+
 ## Telephony Provider Client
 
 - `TelephonyClientInterface` models call retrieval and recording URL lookups. The default `GenericRestClient` honours admin-configured base URLs, headers, query parameters, pagination size, and rate-limit guidance with exponential backoff on `429`/`5xx` responses.

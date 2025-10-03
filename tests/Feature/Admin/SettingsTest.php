@@ -56,6 +56,7 @@ class SettingsTest extends TestCase
             'notifications_slack_webhook' => 'https://hooks.slack.com/services/T000/B000/AAA',
             'privacy_pii_masking' => '1',
             'privacy_retention_months' => 18,
+            'privacy_deletion_grace_days' => 45,
         ];
 
         $response = $this->actingAs($admin)->post(route('admin.settings.general.update'), $payload);
@@ -103,6 +104,11 @@ class SettingsTest extends TestCase
             'value' => '1',
         ]);
 
+        $this->assertDatabaseHas('settings', [
+            'key' => 'privacy.deletion_grace_days',
+            'value' => '45',
+        ]);
+
         $this->assertSame('CallHub QA Ops', setting('app.name'));
     }
 
@@ -143,6 +149,7 @@ class SettingsTest extends TestCase
             'notifications_slack_webhook' => null,
             'privacy_pii_masking' => '1',
             'privacy_retention_months' => 12,
+            'privacy_deletion_grace_days' => 14,
         ];
 
         $response = $this->actingAs($admin)->post(route('admin.settings.general.update'), $payload);

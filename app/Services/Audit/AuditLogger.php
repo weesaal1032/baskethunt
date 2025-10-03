@@ -31,6 +31,25 @@ class AuditLogger
         }
     }
 
+    public function logSystem(string $action, Model|int|string $subject, array $meta = []): void
+    {
+        $user = User::query()
+            ->where('role', 'admin')
+            ->orderBy('id')
+            ->first();
+
+        if ($user === null) {
+            Log::warning('Attempted to write audit entry without available admin context.', [
+                'action' => $action,
+                'subject' => $subject instanceof Model ? $subject::class : $subject,
+            ]);
+
+            return;
+        }
+
+        $this->log($user, $action, $subject, $meta);
+    }
+
     private function normalizeSubject(Model|int|string $subject): array
     {
         if ($subject instanceof Model) {

@@ -380,6 +380,12 @@
                     <label for="privacy_retention_months" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Retention (months)</label>
                     <input id="privacy_retention_months" name="privacy_retention_months" type="number" min="1" value="{{ old('privacy_retention_months', $form['privacy']['retention_months']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
                 </div>
+
+                <div class="max-w-xs">
+                    <label for="privacy_deletion_grace_days" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Deletion grace period (days)</label>
+                    <input id="privacy_deletion_grace_days" name="privacy_deletion_grace_days" type="number" min="1" value="{{ old('privacy_deletion_grace_days', $form['privacy']['deletion_grace_days']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Soft-deleted assets remain recoverable during this window before storage objects are purged.</p>
+                </div>
             </div>
         </section>
 
