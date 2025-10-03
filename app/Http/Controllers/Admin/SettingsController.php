@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\Notifications\NotificationService;
 use App\Services\Settings\SettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,10 +53,14 @@ class SettingsController extends Controller
             'notifications.mail.encryption',
             'notifications.mail.from_address',
             'notifications.mail.from_name',
+            'notifications.mail.recipients',
             'notifications.slack.webhook',
+            'notifications.transcription.backlog_threshold',
             'privacy.pii_masking',
             'privacy.retention_months',
             'privacy.deletion_grace_days',
+            'storage.alert.local_percent',
+            'storage.alert.s3_gb',
             'qa.rubric',
             'qa.pass_threshold',
             'qa.rubric_version',
@@ -67,6 +72,15 @@ class SettingsController extends Controller
         if (is_array($telephonyRateLimit)) {
             $telephonyRateLimit = json_encode($telephonyRateLimit, JSON_PRETTY_PRINT);
         }
+
+        $mailRecipientsValue = $values['notifications.mail.recipients'] ?? config('callhub.notifications.mail.recipients', []);
+        if (is_string($mailRecipientsValue) && $mailRecipientsValue !== '') {
+            $mailRecipientsValue = array_filter(array_map('trim', explode(',', $mailRecipientsValue)));
+        }
+        if (! is_array($mailRecipientsValue)) {
+            $mailRecipientsValue = [];
+        }
+        $mailRecipients = implode(', ', $mailRecipientsValue);
 
         $qaRubric = $values['qa.rubric'] ?? config('callhub.qa.rubric');
         if (is_string($qaRubric) && $qaRubric !== '') {
@@ -98,6 +112,10 @@ class SettingsController extends Controller
                     'bucket' => $values['storage.s3.bucket'] ?? '',
                     'prefix' => $values['storage.s3.prefix'] ?? '',
                 ],
+                'alert' => [
+                    'local_percent' => (float) ($values['storage.alert.local_percent'] ?? config('callhub.storage.alert.local_percent', 80)),
+                    's3_gb' => (int) ($values['storage.alert.s3_gb'] ?? config('callhub.storage.alert.s3_gb', 0)),
+                ],
             ],
             'transcription' => [
                 'engine' => $values['transcription.engine'] ?? 'whisper_api',
@@ -120,9 +138,13 @@ class SettingsController extends Controller
                     'encryption' => $values['notifications.mail.encryption'] ?? config('mail.mailers.smtp.encryption'),
                     'from_address' => $values['notifications.mail.from_address'] ?? config('mail.from.address'),
                     'from_name' => $values['notifications.mail.from_name'] ?? config('mail.from.name'),
+                    'recipients' => $mailRecipients,
                 ],
                 'slack' => [
                     'webhook' => $values['notifications.slack.webhook'] ?? '',
+                ],
+                'transcription' => [
+                    'backlog_threshold' => (int) ($values['notifications.transcription.backlog_threshold'] ?? config('callhub.notifications.transcription.backlog_threshold', 20)),
                 ],
             ],
             'privacy' => [
@@ -167,6 +189,8 @@ class SettingsController extends Controller
         $currentRubricVersion = (int) ($this->settings->get('qa.rubric_version') ?? config('callhub.qa.rubric_version', 1));
         $rubricPayload = [];
 
+        $mailRecipientList = [];
+
         $validator = Validator::make($request->all(), [
             'site_name' => ['required', 'string', 'max:255'],
             'timezone' => ['required', 'string', Rule::in(timezone_identifiers_list())],
@@ -183,6 +207,8 @@ class SettingsController extends Controller
             'storage_s3_region' => ['nullable', 'string', 'max:191'],
             'storage_s3_bucket' => ['nullable', 'string', 'max:191'],
             'storage_s3_prefix' => ['nullable', 'string', 'max:191'],
+            'storage_local_alert_percent' => ['required', 'numeric', 'min:10', 'max:100'],
+            'storage_s3_alert_gb' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'transcription_engine' => ['required', Rule::in(['whisper_api', 'whisper_cli'])],
             'transcription_api_key' => ['nullable', 'string', 'max:512'],
             'transcription_cli_path' => ['nullable', 'string', 'max:255'],
@@ -200,7 +226,9 @@ class SettingsController extends Controller
             'notifications_mail_encryption' => ['nullable', 'string', 'max:10'],
             'notifications_mail_from_address' => ['required', 'email'],
             'notifications_mail_from_name' => ['required', 'string', 'max:191'],
+            'notifications_mail_recipients' => ['required', 'string'],
             'notifications_slack_webhook' => ['nullable', 'url'],
+            'notifications_transcription_backlog_threshold' => ['required', 'integer', 'min:1', 'max:5000'],
             'privacy_pii_masking' => ['nullable', 'boolean'],
             'privacy_retention_months' => ['required', 'integer', 'min:1', 'max:360'],
             'privacy_deletion_grace_days' => ['required', 'integer', 'min:1', 'max:365'],
@@ -208,12 +236,31 @@ class SettingsController extends Controller
             'qa_pass_threshold' => ['required', 'integer', 'min:0', 'max:100'],
         ]);
 
-        $validator->after(function ($validator) use ($existingSensitive, &$rubricPayload): void {
+        $validator->after(function ($validator) use ($existingSensitive, &$rubricPayload, &$mailRecipientList): void {
             if ($validator->errors()->isNotEmpty()) {
                 return;
             }
 
             $data = $validator->getData();
+
+            $rawRecipients = (string) ($data['notifications_mail_recipients'] ?? '');
+            $emails = array_filter(array_map('trim', preg_split('/[,;]/', $rawRecipients) ?: []));
+
+            if (empty($emails)) {
+                $validator->errors()->add('notifications_mail_recipients', 'Provide at least one notification recipient.');
+
+                return;
+            }
+
+            foreach ($emails as $email) {
+                if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $validator->errors()->add('notifications_mail_recipients', sprintf('Invalid email address: %s', $email));
+
+                    return;
+                }
+            }
+
+            $mailRecipientList = array_values(array_unique($emails));
 
             if (($data['storage_driver'] ?? 'local') === 's3') {
                 if ($this->secretMissing($data['storage_s3_access_key'] ?? null, $existingSensitive['storage.s3.key'] ?? null)) {
@@ -299,6 +346,9 @@ class SettingsController extends Controller
         $rubric = $rubricPayload;
         $rubricChanged = json_encode($currentRubric) !== json_encode($rubric);
         $rubricVersion = $rubricChanged ? $currentRubricVersion + 1 : $currentRubricVersion;
+        $localAlertPercent = (float) $data['storage_local_alert_percent'];
+        $s3AlertGb = (int) ($data['storage_s3_alert_gb'] ?? 0);
+        $transcriptionBacklogThreshold = (int) $data['notifications_transcription_backlog_threshold'];
 
         $settingsPayload = [
             'app.name' => $data['site_name'],
@@ -316,6 +366,8 @@ class SettingsController extends Controller
             'storage.s3.region' => $data['storage_s3_region'] ?? null,
             'storage.s3.bucket' => $data['storage_s3_bucket'] ?? null,
             'storage.s3.prefix' => $data['storage_s3_prefix'] ?? null,
+            'storage.alert.local_percent' => $localAlertPercent,
+            'storage.alert.s3_gb' => $s3AlertGb,
             'transcription.engine' => $transcriptionEngine,
             'transcription.api_key' => $transcriptionApiKey,
             'transcription.cli_path' => $data['transcription_cli_path'] ?? null,
@@ -333,7 +385,9 @@ class SettingsController extends Controller
             'notifications.mail.encryption' => $data['notifications_mail_encryption'] ?? null,
             'notifications.mail.from_address' => $data['notifications_mail_from_address'],
             'notifications.mail.from_name' => $data['notifications_mail_from_name'],
+            'notifications.mail.recipients' => $mailRecipientList,
             'notifications.slack.webhook' => $data['notifications_slack_webhook'] ?? null,
+            'notifications.transcription.backlog_threshold' => $transcriptionBacklogThreshold,
             'privacy.pii_masking' => $piiMasking ? '1' : '0',
             'privacy.retention_months' => $retentionMonths,
             'privacy.deletion_grace_days' => $deletionGraceDays,
@@ -380,6 +434,8 @@ class SettingsController extends Controller
             'callhub.storage.s3.region' => $data['storage_s3_region'] ?? null,
             'callhub.storage.s3.bucket' => $data['storage_s3_bucket'] ?? null,
             'callhub.storage.s3.prefix' => $data['storage_s3_prefix'] ?? null,
+            'callhub.storage.alert.local_percent' => $localAlertPercent,
+            'callhub.storage.alert.s3_gb' => $s3AlertGb,
             'callhub.transcription.engine' => $transcriptionEngine,
             'callhub.transcription.api_key' => $transcriptionApiKey,
             'callhub.transcription.cli_path' => $data['transcription_cli_path'] ?? null,
@@ -397,7 +453,9 @@ class SettingsController extends Controller
             'callhub.notifications.mail.encryption' => $data['notifications_mail_encryption'] ?? null,
             'callhub.notifications.mail.from_address' => $data['notifications_mail_from_address'],
             'callhub.notifications.mail.from_name' => $data['notifications_mail_from_name'],
+            'callhub.notifications.mail.recipients' => $mailRecipientList,
             'callhub.notifications.slack.webhook' => $data['notifications_slack_webhook'] ?? null,
+            'callhub.notifications.transcription.backlog_threshold' => $transcriptionBacklogThreshold,
             'callhub.privacy.pii_masking' => $piiMasking,
             'callhub.privacy.retention_months' => $retentionMonths,
             'callhub.privacy.deletion_grace_days' => $deletionGraceDays,
@@ -409,6 +467,28 @@ class SettingsController extends Controller
         return redirect()
             ->route('admin.settings.general')
             ->with('status', 'Settings updated successfully.');
+    }
+
+    public function sendTestNotification(Request $request, NotificationService $notifications): RedirectResponse
+    {
+        $data = $request->validate([
+            'channel' => ['required', Rule::in(['mail', 'slack'])],
+        ]);
+
+        $channel = $data['channel'];
+
+        $notifications->sendAlert(
+            sprintf('CallHub %s Notification Test', ucfirst($channel)),
+            'This is a test notification triggered from the settings panel to verify delivery.',
+            ['triggered_by' => optional($request->user())->email],
+            null,
+            0,
+            [$channel]
+        );
+
+        return redirect()
+            ->route('admin.settings.general')
+            ->with('status', sprintf('%s notification dispatched for testing.', ucfirst($channel)));
     }
 
     private function retainSecret(?string $input, mixed $existing): ?string

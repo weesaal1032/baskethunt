@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Job as DomainJob;
 use App\Models\Recording;
+use App\Services\Notifications\NotificationService;
 use App\Services\Settings\SettingsService;
 use App\Services\Storage\StorageService;
 use Carbon\CarbonImmutable;
@@ -46,7 +47,7 @@ class DownloadRecordingJob implements ShouldQueue
         $this->queue = 'recordings';
     }
 
-    public function handle(StorageService $storage, SettingsService $settings): void
+    public function handle(StorageService $storage, SettingsService $settings, NotificationService $notifications): void
     {
         $domainJob = $this->locateDomainJob();
         $this->markRunning($domainJob);
@@ -68,9 +69,13 @@ class DownloadRecordingJob implements ShouldQueue
         $remoteUrl = $recording->remote_url;
 
         if ($remoteUrl === null || $remoteUrl === '') {
-            $this->markFailed($domainJob, new RuntimeException('Recording missing remote URL.'), false);
+            $final = $this->markFailed($domainJob, new RuntimeException('Recording missing remote URL.'), false);
             $recording->status = 'failed';
             $recording->save();
+
+            if ($final) {
+                $this->notifyFailure($notifications, $recording->id, 'missing remote URL');
+            }
 
             return;
         }
@@ -126,13 +131,17 @@ class DownloadRecordingJob implements ShouldQueue
             $recording->status = 'failed';
             $recording->save();
 
-            $this->markFailed($domainJob, $throwable);
+            $final = $this->markFailed($domainJob, $throwable);
 
             Log::error('Recording download failed.', [
                 'recording_id' => $this->recordingId,
                 'job_id' => $this->jobId,
                 'message' => $throwable->getMessage(),
             ]);
+
+            if ($final) {
+                $this->notifyFailure($notifications, $recording->id, $throwable->getMessage());
+            }
 
             if ($this->job !== null) {
                 $this->release($this->backoffSeconds($domainJob?->attempts ?? 1));
@@ -183,10 +192,10 @@ class DownloadRecordingJob implements ShouldQueue
         $domainJob->save();
     }
 
-    private function markFailed(?DomainJob $domainJob, Throwable $throwable, bool $retryable = true): void
+    private function markFailed(?DomainJob $domainJob, Throwable $throwable, bool $retryable = true): bool
     {
         if ($domainJob === null) {
-            return;
+            return true;
         }
 
         $domainJob->last_error = $throwable->getMessage();
@@ -196,12 +205,14 @@ class DownloadRecordingJob implements ShouldQueue
             $domainJob->run_at = CarbonImmutable::now();
             $domainJob->save();
 
-            return;
+            return true;
         }
 
         $domainJob->status = 'queued';
         $domainJob->run_at = CarbonImmutable::now()->addSeconds($this->backoffSeconds($domainJob->attempts));
         $domainJob->save();
+
+        return false;
     }
 
     /**
@@ -442,5 +453,16 @@ class DownloadRecordingJob implements ShouldQueue
         $attempt = max(1, $attempt);
 
         return min(900, 5 * (2 ** ($attempt - 1)));
+    }
+
+    private function notifyFailure(NotificationService $notifications, int $recordingId, string $reason): void
+    {
+        $notifications->sendAlert(
+            'CallHub Recording Download Failed',
+            sprintf('Recording %d could not be downloaded: %s', $recordingId, $reason),
+            ['recording_id' => $recordingId],
+            'notifications.download.last_failure_'.$recordingId,
+            30
+        );
     }
 }

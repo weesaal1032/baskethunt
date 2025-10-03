@@ -57,6 +57,10 @@ return [
             'bucket' => env('AWS_BUCKET'),
             'prefix' => env('CALLHUB_STORAGE_PREFIX'),
         ],
+        'alert' => [
+            'local_percent' => env('CALLHUB_STORAGE_ALERT_PERCENT', 80),
+            's3_gb' => env('CALLHUB_STORAGE_ALERT_S3_GB', 0),
+        ],
     ],
 
     'media' => [
@@ -85,9 +89,16 @@ return [
             'encryption' => env('MAIL_ENCRYPTION'),
             'from_address' => env('MAIL_FROM_ADDRESS'),
             'from_name' => env('MAIL_FROM_NAME'),
+            'recipients' => array_values(array_filter(array_map(
+                'trim',
+                explode(',', (string) env('CALLHUB_ALERT_RECIPIENTS', ''))
+            ))),
         ],
         'slack' => [
             'webhook' => env('SLACK_WEBHOOK_URL'),
+        ],
+        'transcription' => [
+            'backlog_threshold' => env('CALLHUB_TRANSCRIPTION_BACKLOG_THRESHOLD', 20),
         ],
     ],
 

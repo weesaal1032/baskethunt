@@ -110,6 +110,13 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - Admin settings expose the Whisper API timeout, CLI binary/model/threads/timeout inputs, and a daily transcription minutes cap to throttle spending; language preferences follow the saved default and persist per transcript.
 - Domain jobs record success and retry metadata, while the worker backfills transcripts into the `transcripts` table with `processing`/`ready` status tracking for observability dashboards.
 
+## Notifications & Alerting
+
+- Admin → Settings → Notifications captures SMTP credentials, alert recipients, Slack webhook, and the transcription backlog threshold. Alert recipients accept comma-separated emails and are persisted securely in the settings store.
+- `NotificationService` delivers email and Slack alerts for poller failures, repeated download job failures, transcription backlog spikes, and storage thresholds. Alerts are throttled to avoid duplicate floods and persist last-dispatched timestamps in settings.
+- Storage thresholds include local disk utilisation (`CALLHUB_STORAGE_ALERT_PERCENT`) and optional S3 usage ceilings (`CALLHUB_STORAGE_ALERT_S3_GB`); transcription backlogs use the configured threshold or the admin override (`CALLHUB_TRANSCRIPTION_BACKLOG_THRESHOLD`).
+- New scheduler entries run `notifications:health-check` every 15 minutes for disk/backlog alerts and `notifications:daily-summary` at 07:30 to email daily ingestion/download/transcription/QA rollups. Trigger test notifications from the settings tab to validate mail and Slack plumbing.
+
 ## Admin Dashboard & Health
 
 - `/admin` now surfaces an operations overview with rolling 24-hour metrics for call ingestion, recording downloads, transcription completions, and job failures alongside queue depth and storage utilisation.

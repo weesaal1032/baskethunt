@@ -159,6 +159,24 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="grid gap-6 md:grid-cols-2">
+                    <div>
+                        <label for="storage_local_alert_percent" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Local Disk Alert Threshold (%)</label>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Alerts trigger when local storage usage exceeds this percentage.</p>
+                        <input id="storage_local_alert_percent" name="storage_local_alert_percent" type="number" min="10" max="100" step="1" value="{{ old('storage_local_alert_percent', $form['storage']['alert']['local_percent']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
+                    </div>
+                    <div>
+                        <label for="storage_s3_alert_gb" class="block text-sm font-medium text-slate-700 dark:text-slate-300">S3 Usage Alert Threshold (GB)</label>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Set to zero to disable alerts for S3 usage.</p>
+                        <input id="storage_s3_alert_gb" name="storage_s3_alert_gb" type="number" min="0" step="1" value="{{ old('storage_s3_alert_gb', $form['storage']['alert']['s3_gb']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+                    </div>
+                </div>
+
+                <div class="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4 text-sm text-slate-600 dark:text-slate-300">
+                    <p class="font-semibold text-slate-800 dark:text-slate-100">Storage backend change helper</p>
+                    <p class="mt-2">Switching between Local and S3 will invoke the storage migration utility to move existing recordings. Ensure credentials are valid before saving.</p>
+                </div>
             </div>
         </section>
 
@@ -266,6 +284,24 @@
                     <div>
                         <label for="notifications_mail_from_address" class="block text-sm font-medium text-slate-700 dark:text-slate-300">From Address</label>
                         <input id="notifications_mail_from_address" name="notifications_mail_from_address" type="email" value="{{ old('notifications_mail_from_address', $form['notifications']['mail']['from_address']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="notifications_mail_recipients" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Notification Recipients</label>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Comma-separated list of email addresses that receive operational alerts.</p>
+                    <input id="notifications_mail_recipients" name="notifications_mail_recipients" type="text" value="{{ old('notifications_mail_recipients', $form['notifications']['mail']['recipients']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
+                </div>
+
+                <div class="grid gap-6 md:grid-cols-2">
+                    <div>
+                        <label for="notifications_transcription_backlog_threshold" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Transcription Backlog Threshold</label>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Alert when queued transcription jobs exceed this count.</p>
+                        <input id="notifications_transcription_backlog_threshold" name="notifications_transcription_backlog_threshold" type="number" min="1" step="1" value="{{ old('notifications_transcription_backlog_threshold', $form['notifications']['transcription']['backlog_threshold']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
+                    </div>
+                    <div class="flex items-end gap-3">
+                        <button type="submit" form="test-mail-alert" class="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-700/60">Send Test Email</button>
+                        <button type="submit" form="test-slack-alert" class="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-700/60">Send Test Slack</button>
                     </div>
                 </div>
             </div>
@@ -392,6 +428,16 @@
         <div class="flex justify-end">
             <button type="submit" class="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-500/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">Save Settings</button>
         </div>
+    </form>
+
+    <form id="test-mail-alert" method="POST" action="{{ route('admin.settings.notifications.test') }}" class="hidden">
+        @csrf
+        <input type="hidden" name="channel" value="mail">
+    </form>
+
+    <form id="test-slack-alert" method="POST" action="{{ route('admin.settings.notifications.test') }}" class="hidden">
+        @csrf
+        <input type="hidden" name="channel" value="slack">
     </form>
 </div>
 

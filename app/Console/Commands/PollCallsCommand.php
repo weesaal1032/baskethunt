@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\Calls\CallIngestionResult;
 use App\Services\Calls\CallIngestionService;
+use App\Services\Notifications\NotificationService;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -13,7 +14,10 @@ class PollCallsCommand extends Command
 
     protected $description = 'Poll the configured telephony provider for recent calls.';
 
-    public function __construct(private readonly CallIngestionService $ingestionService)
+    public function __construct(
+        private readonly CallIngestionService $ingestionService,
+        private readonly NotificationService $notifications
+    )
     {
         parent::__construct();
     }
@@ -25,6 +29,14 @@ class PollCallsCommand extends Command
         } catch (Throwable $exception) {
             report($exception);
             $this->error('Call polling failed: '.$exception->getMessage());
+
+            $this->notifications->sendAlert(
+                'CallHub Poller Failure',
+                'The telephony poller failed with: '.$exception->getMessage(),
+                ['exception' => class_basename($exception)],
+                'notifications.poller.last_failure',
+                15
+            );
 
             return self::FAILURE;
         }

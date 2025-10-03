@@ -47,6 +47,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::get('logs', [DashboardController::class, 'logs'])->name('logs');
         Route::get('settings/general', [SettingsController::class, 'edit'])->name('settings.general');
         Route::post('settings/general', [SettingsController::class, 'update'])->name('settings.general.update');
+        Route::post('settings/notifications/test', [SettingsController::class, 'sendTestNotification'])->name('settings.notifications.test');
 
         Route::prefix('providers')->name('providers.')->group(function (): void {
             Route::get('telephony/mapping', [TelephonyProviderController::class, 'mapping'])->name('telephony.mapping');
