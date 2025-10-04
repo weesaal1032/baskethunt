@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 20
+Date (UTC): 2025-10-04
+Author: CallHub engineering log
+
+High-Level Overview
+Documented the cPanel deployment flow, added cron heartbeat telemetry via settings, and expanded health reporting so hosted environments can confirm scheduler and domain job execution after upload.
+
+Files Created / Modified / Deleted
+Created DEPLOYING_ON_CPANEL.md and updated README.md with cPanel instructions, cron job expectations, and health verification notes. Modified app/Console/Kernel.php to persist scheduler heartbeats, app/Console/Commands/RunJobsCommand.php to log worker executions, and routes/health.php to emit new heartbeat timestamps.
+
+Data Model & Migrations (if any)
+No schema changes were introduced; the new telemetry keys reuse the existing settings storage layer.
+
+Routes, Controllers, Commands
+Augmented the console kernel schedule to record cron heartbeats every minute and continue dispatching poll:calls and jobs:run. Extended the jobs:run command to capture its own execution timestamp when invoked via cron.
+
+Services, Jobs, and Algorithms
+Leveraged SettingsService to write system.scheduler.last_ran_at and system.jobs.last_ran_at values, making the heartbeats durable across processes without adding new services.
+
+Configuration & Environment
+README and the new deployment guide outline required cron expressions, environment variables for S3, Whisper, and provider APIs, and expectations for storage permissions on cPanel.
+
+Dependencies & Libraries
+No additional packages were added; Laravel scheduling, SettingsService, and existing storage helpers power the new behaviour.
+
+UI/UX Notes (if applicable)
+The admin help documentation now references the cPanel deployment runbook; otherwise, no UI screens were changed.
+
+Security & Compliance
+Installer remains locked after setup, and the cron guidance emphasises keeping jobs:run output within private storage/logs to avoid leaking operational data.
+
+Performance & Scalability
+The jobs:run command retains configurable limits (--max, --sleep) suitable for constrained shared hosting; cron cadence recommendations ensure work queues remain healthy without resident workers.
+
+Observability
+/health/status now exposes scheduler_last_ran_at and jobs_runner_last_ran_at timestamps, letting operators confirm cron execution from monitoring tools.
+
+Testing & Verification
+Static analysis via php -l was executed on app/Console/Kernel.php, app/Console/Commands/RunJobsCommand.php, and routes/health.php. Full PHPUnit/Pest suites were not run because dependencies are unavailable in the container.
+
+Rollback / Remediation
+To revert, remove the heartbeat closure from the scheduler, delete the new DEPLOYING_ON_CPANEL.md references, and drop the additional settings keys; cron jobs will continue to run without telemetry.
+
+Known Limitations & Open Questions
+Heartbeat metrics currently depend on cron frequency; missing executions require external alerting. Packaging instructions assume manual zip creation; automated build pipelines are deferred.
+
+Next-Step Preview
+Future work will automate deployment packaging and integrate cron heartbeat checks into the notification service for proactive alerts.
+
+Glossary for New Terms Introduced
+Cron heartbeat: Timestamp recorded in settings that indicates when a scheduled job or worker last executed, used for health reporting.
+
+References
+See DEPLOYING_ON_CPANEL.md for the deployment checklist, README.md Deployment section for cron syntax, app/Console/Kernel.php for scheduler updates, app/Console/Commands/RunJobsCommand.php for worker telemetry, and routes/health.php for the heartbeat JSON payload.

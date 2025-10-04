@@ -17,3 +17,4 @@
 17 | Data retention and deletion tooling | Added nightly retention enforcement, manual call purge command, and storage cleanup audits.
 18 | Notifications and alerting | Added NotificationService with Slack/email alerts, scheduled health checks, and daily summaries.
 19 | Exports and internal APIs | Added call reporting CSV exports, admin help docs, and JWT-protected BI endpoints.
+20 | cPanel deployment guide and cron telemetry | Documented vendor bundle packaging, cron job cadence, and heartbeat reporting surfaced in /health.
