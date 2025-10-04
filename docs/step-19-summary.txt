@@ -1,0 +1,56 @@
+Step Metadata
+Step number: 19
+Date (UTC): 2025-10-04
+Author: CallHub engineering log
+
+High-Level Overview
+Implemented CSV export pipelines and JWT-guarded internal APIs so BI tooling can pull call and QA metrics while honouring privacy, RBAC, and filtering semantics shared with the recording library.
+
+Files Created / Modified / Deleted
+Created app/Http/Controllers/Admin/CallExportController.php, app/Http/Controllers/Admin/HelpController.php, app/Http/Controllers/Api/Internal/CallsController.php, app/Http/Controllers/Api/Internal/QaScoresController.php, app/Http/Middleware/VerifyInternalApiJwt.php, app/Services/Api/JwtService.php, app/Services/Calls/CallReportingService.php, app/Support/Filters/CallFilters.php, resources/views/admin/help.blade.php, routes/api.php, routes/web.php, README.md, .env.example, config/callhub.php, and README documentation plus feature and unit coverage in tests/Feature/Admin/CallExportTest.php, tests/Feature/Api/Internal/CallsApiTest.php, tests/Feature/Api/Internal/QaScoresApiTest.php, and supporting helpers.
+
+Data Model & Migrations (if any)
+No schema changes were required; exports reuse existing call, recording, transcript, and QA score relations.
+
+Routes, Controllers, Commands
+Added admin routes for /admin/calls/export, reinforced /admin/recordings/export and /admin/qa/export endpoints, and introduced /admin/help for operator documentation. Registered /api/internal/{status,calls,qa-scores} routes under the internal.api middleware alias to expose paginated JSON feeds.
+
+Services, Jobs, and Algorithms
+CallReportingService centralises pagination, lazy streaming, and masking decisions backed by CallFilters, while JwtService handles HS256 verification, clock skew checks, and secret lookups for the internal API middleware.
+
+Configuration & Environment
+New CALLHUB_INTERNAL_API_SECRET and CALLHUB_INTERNAL_API_TTL environment flags landed in .env.example and config/callhub.php; README guidance now explains token provisioning, export URLs, and API usage from cPanel-friendly contexts.
+
+Dependencies & Libraries
+No external packages were added; implementations rely on Laravel HTTP facilities, LazyCollection streaming, and native hash_hmac for JWT validation.
+
+UI/UX Notes (if applicable)
+Admin navigation gains a Help page detailing export endpoints, JWT expectations, and filter behaviour. Recording and QA pages surface CSV export affordances aligned with existing filter widgets.
+
+Security & Compliance
+Internal APIs require signed JWTs with short TTLs, failing closed on missing or invalid tokens. Exports and APIs apply the privacy masking toggle to phone numbers and continue enforcing policy-based access checks.
+
+Performance & Scalability
+CSV generation streams records in configurable chunks to avoid memory spikes, and API pagination defaults remain tunable via query parameters while reusing indexed filter scopes.
+
+Observability
+Unauthorized API attempts return structured 401 payloads suitable for log-based alerting, and the help page documents operational caveats for monitoring teams.
+
+Testing & Verification
+New feature and unit test classes cover export filtering, privacy masking, and JWT rejection paths; they were added but not executed in this environment because Composer dependencies remain unavailable.
+
+Rollback / Remediation
+Disable or remove the internal.api middleware alias, delete the admin call export routes, and clear the API secret setting to revert to pre-export behaviour without touching persisted data.
+
+Known Limitations & Open Questions
+Internal API tokens currently share a single secret; multi-tenant client keys and refresh endpoints remain future enhancements. Export throttling for very large date ranges is not yet implemented.
+
+Next-Step Preview
+Upcoming work is expected to extend BI integrations with webhook push options and broaden reporting dimensions surfaced through the internal API payloads.
+
+Glossary for New Terms Introduced
+Internal API JWT: HS256-signed token required for accessing /api/internal endpoints, carrying issuer, audience, and short-lived expiry claims.
+
+References
+See README.md Help section and config/callhub.php → api.internal settings for operator integration details.
+
