@@ -85,6 +85,8 @@ class PollCallsCommandTest extends TestCase
 
         $health = $this->get('/health/status')->json();
         $this->assertArrayHasKey('telephony_last_poll_at', $health);
+        $this->assertArrayHasKey('scheduler_last_ran_at', $health);
+        $this->assertArrayHasKey('jobs_runner_last_ran_at', $health);
         $this->assertNotNull($health['telephony_last_poll_at']);
     }
 }

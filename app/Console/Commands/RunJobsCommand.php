@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Jobs\DownloadRecordingJob;
 use App\Jobs\TranscribeRecordingJob;
 use App\Models\Job as DomainJob;
+use App\Services\Settings\SettingsService;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -17,12 +18,20 @@ class RunJobsCommand extends Command
 
     protected $description = 'Process domain jobs such as recording downloads without relying on a long-running worker.';
 
+    public function __construct(private readonly SettingsService $settings)
+    {
+        parent::__construct();
+    }
+
     public function handle(): int
     {
         $once = (bool) $this->option('once');
         $sleep = max(1, (int) $this->option('sleep'));
         $max = max(0, (int) $this->option('max'));
         $processed = 0;
+        $now = CarbonImmutable::now();
+
+        $this->settings->set('system.jobs.last_ran_at', $now->toIso8601String());
 
         while (true) {
             $job = $this->reserveJob();

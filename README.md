@@ -28,10 +28,11 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
    ```bash
    php artisan serve
    ```
-6. **Schedule and queue workers (cPanel friendly)**
-   - Queue worker cron: `* * * * * cd /path/to/callhub && php artisan queue:work --queue=default --sleep=3 --tries=3 >> /path/to/callhub/storage/logs/queue-worker.log 2>&1`
-   - Domain job worker cron: `* * * * * cd /path/to/callhub && php artisan jobs:run --once --max=10 >> /path/to/callhub/storage/logs/domain-worker.log 2>&1`
-   - Schedule runner cron: `* * * * * cd /path/to/callhub && php artisan schedule:run >> /path/to/callhub/storage/logs/scheduler.log 2>&1`
+6. **Schedule and queue workers**
+   - Minimum cron cadence: `*/5 * * * * php /home/USER/public_html/artisan schedule:run`
+   - Domain job worker cron: `*/5 * * * * php /home/USER/public_html/artisan jobs:run --once --max=25`
+   - Optional queue worker: `*/5 * * * * php /home/USER/public_html/artisan queue:work --stop-when-empty`
+   - See [DEPLOYING_ON_CPANEL.md](DEPLOYING_ON_CPANEL.md) for vendor bundle packaging and log redirection examples tailored to shared hosting.
 
 ## Installer
 
@@ -42,7 +43,13 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - To re-enable the installer intentionally, run `php artisan installer:unlock` (use `--force` for unattended scripts) which
   deletes `storage/installed.flag` after confirmation.
 - Final step surfaces production-ready cPanel Cron commands for the scheduler and queue worker. Update the project path before
-  saving the jobs in your hosting panel.
+  saving the jobs in your hosting panel or reference [DEPLOYING_ON_CPANEL.md](DEPLOYING_ON_CPANEL.md) for copy-paste entries.
+
+## cPanel Deployment
+
+- Follow [DEPLOYING_ON_CPANEL.md](DEPLOYING_ON_CPANEL.md) to package a vendor-bundled release, upload it under `public_html`, set writable permissions, and register cron jobs on shared hosting.
+- The deployment guide also covers S3-compatible storage, Whisper transcription modes, and telephony provider configuration to complete post-install hardening.
+- After cron executes, `/health/status` exposes `scheduler_last_ran_at` and `jobs_runner_last_ran_at` timestamps so you can confirm the hosting panel is invoking tasks on schedule.
 
 ## Authentication & RBAC
 
@@ -89,7 +96,7 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 
 - The `poll:calls` Artisan command queries the configured telephony API for the trailing poll window, honours saved cursors, and upserts calls and associated recordings without duplication.
 - Successful polling queues `DownloadRecordingJob` records on the `recordings` queue and records job metadata in the domain `jobs` table; the scheduler triggers this command every five minutes by default.
-- Health checks at `/health/status` expose the timestamp of the last successful poll for observability dashboards.
+- Health checks at `/health/status` expose the timestamp of the last successful poll alongside scheduler and job runner heartbeats so observability dashboards can confirm cron execution.
 
 ## Recording Storage
 
@@ -127,7 +134,7 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 
 - `/admin` now surfaces an operations overview with rolling 24-hour metrics for call ingestion, recording downloads, transcription completions, and job failures alongside queue depth and storage utilisation.
 - Alerts raise when local disk consumption exceeds 80% or when recent job failures require investigation; admins can drill into the bundled log viewer at `/admin/logs`.
-- Storage backend usage is summarised per driver, helping operators identify when to migrate recordings to S3 and ensuring health dashboards reflect the most recent telephony poll timestamp.
+- Storage backend usage is summarised per driver, helping operators identify when to migrate recordings to S3 and ensuring health dashboards reflect the most recent telephony poll timestamp alongside scheduler/job heartbeat data sourced from `/health/status`.
 
 ## Modules
 
