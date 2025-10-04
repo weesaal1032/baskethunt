@@ -22,6 +22,12 @@
         </div>
         <div class="flex items-center gap-3">
             <a
+                href="{{ route('admin.calls.export', array_filter($filters, fn ($value) => $value !== null && $value !== '')) }}"
+                class="inline-flex items-center gap-2 rounded border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:border-brand-500 hover:text-brand-500 dark:border-slate-600 dark:bg-slate-800"
+            >
+                Export Calls CSV
+            </a>
+            <a
                 href="{{ route('admin.recordings.export', array_filter($filters, fn ($value) => $value !== null && $value !== '')) }}"
                 class="inline-flex items-center gap-2 rounded border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:border-brand-500 hover:text-brand-500 dark:border-slate-600 dark:bg-slate-800"
             >

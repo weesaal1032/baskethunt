@@ -56,6 +56,7 @@ class SettingsService
         'notifications.mail.recipients' => 'callhub.notifications.mail.recipients',
         'notifications.slack.webhook' => 'callhub.notifications.slack.webhook',
         'notifications.transcription.backlog_threshold' => 'callhub.notifications.transcription.backlog_threshold',
+        'api.internal.secret' => 'callhub.api.internal.secret',
         'privacy.pii_masking' => 'callhub.privacy.pii_masking',
         'privacy.retention_months' => 'callhub.privacy.retention_months',
         'privacy.deletion_grace_days' => 'callhub.privacy.deletion_grace_days',

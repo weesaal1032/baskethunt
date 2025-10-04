@@ -4,6 +4,7 @@ namespace App\Services\Qa;
 
 use App\Repositories\Contracts\QARepositoryInterface;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\LazyCollection;
 
@@ -45,6 +46,23 @@ final class QaReportingService
         [$fromDate, $toDate] = $this->resolveRange($from, $to);
 
         return $this->repository->exportScores($fromDate, $toDate, $agentId, $team);
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    public function paginateScores(array $filters, int $perPage = 50): LengthAwarePaginator
+    {
+        [$fromDate, $toDate] = $this->resolveRange($filters['from'] ?? null, $filters['to'] ?? null);
+
+        return $this->repository->paginateScores([
+            'from' => $fromDate,
+            'to' => $toDate,
+            'agent_id' => $filters['agent_id'] ?? null,
+            'team' => $filters['team'] ?? null,
+            'queue' => $filters['queue'] ?? null,
+            'passed' => $filters['passed'] ?? null,
+        ], $perPage);
     }
 
     /**

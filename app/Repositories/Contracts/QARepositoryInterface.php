@@ -4,6 +4,7 @@ namespace App\Repositories\Contracts;
 
 use App\Models\QaScore;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\LazyCollection;
 
@@ -46,4 +47,9 @@ interface QARepositoryInterface extends RepositoryInterface
     public function trendline(CarbonImmutable $from, CarbonImmutable $to, ?string $team = null, ?int $agentId = null): Collection;
 
     public function exportScores(CarbonImmutable $from, CarbonImmutable $to, ?int $agentId = null, ?string $team = null): LazyCollection;
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    public function paginateScores(array $filters, int $perPage): LengthAwarePaginator;
 }

@@ -102,6 +102,13 @@ return [
         ],
     ],
 
+    'api' => [
+        'internal' => [
+            'secret' => env('CALLHUB_INTERNAL_API_SECRET'),
+            'default_ttl' => env('CALLHUB_INTERNAL_API_TTL', 3600),
+        ],
+    ],
+
     'qa' => [
         'rubric_version' => env('CALLHUB_QA_RUBRIC_VERSION', 1),
         'pass_threshold' => env('CALLHUB_QA_PASS_THRESHOLD', 80),

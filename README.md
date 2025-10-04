@@ -79,6 +79,12 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - `TelephonyClientInterface` models call retrieval and recording URL lookups. The default `GenericRestClient` honours admin-configured base URLs, headers, query parameters, pagination size, and rate-limit guidance with exponential backoff on `429`/`5xx` responses.
 - Admins can map remote payload fields to CallHub attributes, customise request metadata, and run a live preview from `/admin/providers/telephony/mapping`. Preview results surface one page of calls and any continuation cursor without exposing shared secrets in logs.
 
+## Exports & Internal API
+
+- Recording library filters power both the on-screen table and CSV exports at `/admin/recordings/export`; the same filter payload can be reused to download call metadata via `/admin/calls/export` which now includes disposition, storage backend, and QA status summaries.
+- QA reports continue to offer `/admin/qa/export` for rubric-level data while the new `/admin/help` page documents all CSV endpoints and JWT authentication requirements for downstream operators.
+- Internal business-intelligence APIs are exposed under `/api/internal/*` and secured with short-lived HS256 JWTs signed by `CALLHUB_INTERNAL_API_SECRET`. Available resources include `/api/internal/calls` (call + recording context) and `/api/internal/qa-scores` (submitted QA history) and each response includes pagination metadata plus applied filters for auditability.
+
 ## Call Ingestion
 
 - The `poll:calls` Artisan command queries the configured telephony API for the trailing poll window, honours saved cursors, and upserts calls and associated recordings without duplication.

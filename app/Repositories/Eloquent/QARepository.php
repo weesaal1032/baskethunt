@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquent;
 use App\Models\QaScore;
 use App\Repositories\Contracts\QARepositoryInterface;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -221,6 +222,67 @@ class QARepository extends BaseRepository implements QARepositoryInterface
         }
 
         return $query->lazy();
+    }
+
+    public function paginateScores(array $filters, int $perPage): LengthAwarePaginator
+    {
+        /** @var CarbonImmutable $from */
+        $from = $filters['from'];
+        /** @var CarbonImmutable $to */
+        $to = $filters['to'];
+
+        $bounds = $this->timelineBounds($from, $to);
+
+        $query = QaScore::query()
+            ->select([
+                'qa_scores.id',
+                'qa_scores.call_id',
+                'qa_scores.version',
+                'qa_scores.total_score',
+                'qa_scores.possible_score',
+                'qa_scores.passed',
+                'qa_scores.status',
+                'qa_scores.tags',
+                'qa_scores.comments',
+                'qa_scores.submitted_at',
+                'qa_scores.created_at',
+                'qa_scores.updated_at',
+                'calls.started_at',
+                'calls.queue',
+                'calls.direction',
+                'calls.duration_sec',
+                'agents.name as agent_name',
+                'agents.team as agent_team',
+                'scorers.name as scorer_name',
+            ])
+            ->join('calls', 'calls.id', '=', 'qa_scores.call_id')
+            ->leftJoin('users as agents', 'agents.id', '=', 'calls.agent_id')
+            ->leftJoin('users as scorers', 'scorers.id', '=', 'qa_scores.scored_by')
+            ->where('qa_scores.status', 'submitted')
+            ->whereBetween($this->scoreDateExpression(), $bounds)
+            ->orderByDesc($this->scoreDateExpression());
+
+        if (! empty($filters['agent_id'])) {
+            $query->where('calls.agent_id', $filters['agent_id']);
+        }
+
+        if (! empty($filters['team'])) {
+            $query->where('agents.team', $filters['team']);
+        }
+
+        if (! empty($filters['queue'])) {
+            $query->where('calls.queue', $filters['queue']);
+        }
+
+        if (isset($filters['passed'])) {
+            if ($filters['passed'] === 'passed') {
+                $query->where('qa_scores.passed', true);
+            } elseif ($filters['passed'] === 'failed') {
+                $query->where('qa_scores.passed', false);
+            }
+        }
+
+        return $query->paginate($perPage);
     }
 
     /**

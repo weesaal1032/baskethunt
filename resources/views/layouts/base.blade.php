@@ -43,6 +43,7 @@
                         @if (auth()->user()?->role === 'admin')
                             <a href="{{ route('admin.providers.telephony.mapping') }}" class="hover:text-brand-500">Providers</a>
                             <a href="{{ route('admin.settings.general') }}" class="hover:text-brand-500">Settings</a>
+                            <a href="{{ route('admin.help') }}" class="hover:text-brand-500">Help</a>
                         @endif
                         <form method="POST" action="{{ route('auth.logout') }}" class="inline">
                             @csrf
