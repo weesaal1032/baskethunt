@@ -15,9 +15,11 @@
         "laravel/pail": "^1.0",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.0",
+        "larastan/larastan": "^2.11",
         "pestphp/pest": "^3.0",
         "pestphp/pest-plugin-laravel": "^3.0",
-        "phpunit/phpunit": "^10.5"
+        "phpstan/phpstan": "^1.11",
+        "phpunit/phpunit": "^11.5"
     },
     "config": {
         "optimize-autoloader": true,
@@ -51,7 +53,8 @@
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi"
         ],
-        "test": "phpunit"
+        "test": "pest",
+        "phpstan": "phpstan analyse --configuration=phpstan.neon.dist"
     },
     "minimum-stability": "stable",
     "prefer-stable": true

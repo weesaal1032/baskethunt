@@ -34,6 +34,20 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
    - Optional queue worker: `*/5 * * * * php /home/USER/public_html/artisan queue:work --stop-when-empty`
    - See [DEPLOYING_ON_CPANEL.md](DEPLOYING_ON_CPANEL.md) for vendor bundle packaging and log redirection examples tailored to shared hosting.
 
+## Quality Checks & Smoke Testing
+
+- Execute the full quality gate locally with the bundled helper:
+  ```bash
+  ./scripts/smoke-test.sh
+  ```
+- The smoke script installs Composer dependencies if needed, runs the Pest-powered application test suite (`php artisan test --pest`), and finishes with a level 6 PHPStan analysis using `phpstan.neon.dist`.
+- To run checks manually:
+  ```bash
+  php artisan test --pest
+  ./vendor/bin/phpstan analyse --configuration=phpstan.neon.dist
+  ```
+
+
 ## Installer
 
 - Navigate to `/install` after uploading the project to run the four-step wizard: system checks, database connection & migrations,
