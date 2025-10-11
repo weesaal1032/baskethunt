@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 21
+Date (UTC): 2025-10-04
+Author: CallHub engineering log
+
+High-Level Overview
+Finalised the tooling polish by introducing Pest-based coverage for critical repositories, storage services, transcription jobs, and RBAC workflows while layering in PHPStan level 6 analysis and a scripted smoke-test entry point documented in the README.
+
+Files Created / Modified / Deleted
+Created pest.php, phpstan.neon.dist, scripts/smoke-test.sh, and multiple Pest feature and unit specs under tests/. Updated composer.json and composer.lock with Pest 3, Larastan, and PHPStan dev dependencies plus helper scripts; refreshed README.md with quality gate instructions; and added supporting factories in database/factories/ alongside minor config normalisations.
+
+Data Model & Migrations (if any)
+No schema changes occurred; factories for calls, providers, recordings, and users were added to ease database seeding within tests without altering production tables.
+
+Routes, Controllers, Commands
+No new routes or controllers were introduced. Existing artisan commands remain unchanged beyond being invoked by the new smoke-test script.
+
+Services, Jobs, and Algorithms
+Runtime services were untouched; the new test coverage exercises StorageService migrations, TranscribeRecordingJob persistence, and audio streaming guards through mocked dependencies to ensure algorithms behave under Pest.
+
+Configuration & Environment
+Composer scripts now expose test and phpstan targets aligned with the smoke-test helper. README’s Quality Checks & Smoke Testing section instructs developers to run ./scripts/smoke-test.sh, which installs dependencies and executes Pest plus PHPStan level 6.
+
+Dependencies & Libraries
+Added pestphp/pest, pestphp/pest-plugin-laravel, phpstan/phpstan, and larastan/larastan to require-dev, enabling Laravel-aware Pest testing and static analysis.
+
+UI/UX Notes (if applicable)
+No UI adjustments were made during this tooling-focused step.
+
+Security & Compliance
+Audio streaming RBAC scenarios now have automated Pest feature tests to guard against regressions that would expose recordings to inactive or unauthorized users.
+
+Performance & Scalability
+Test factories and mocks keep the new suites lightweight; production performance characteristics are unchanged.
+
+Observability
+No telemetry changes were required; existing health reporting continues to operate as before.
+
+Testing & Verification
+New Pest suites for repositories, storage, transcription jobs, and audio streaming were authored but could not be executed in this environment because php artisan test and PHPStan require dependencies that are unavailable; linting was limited to php -l on touched files earlier in the sprint.
+
+Rollback / Remediation
+Remove pest.php, phpstan.neon.dist, scripts/smoke-test.sh, and the newly added tests, then revert composer.json, composer.lock, and README.md to discard the tooling additions.
+
+Known Limitations & Open Questions
+CI gating is incomplete until Composer dependencies install successfully and legacy PHPStan violations are resolved; additional fixtures may be required for the broader suite to pass consistently.
+
+Next-Step Preview
+Stabilise the new Pest and PHPStan pipelines by resolving outstanding static-analysis warnings, seeding necessary fixtures for full-suite execution, and wiring the smoke-test script into CI.
+
+Glossary for New Terms Introduced
+Smoke-test script: a helper bash script (./scripts/smoke-test.sh) that runs Pest and PHPStan in sequence to validate local changes.
+
+References
+See README.md Quality Checks & Smoke Testing, composer.json dev tooling entries, phpstan.neon.dist for analysis settings, scripts/smoke-test.sh for the helper workflow, pest.php for Pest bootstrap, database/factories/* for supporting factories, and tests/Feature/Admin/AudioStreamingRbacPest.php plus tests/Unit/Repositories/RecordingsRepositoryPest.php and tests/Unit/Jobs/TranscribeRecordingJobPest.php for the new coverage.
