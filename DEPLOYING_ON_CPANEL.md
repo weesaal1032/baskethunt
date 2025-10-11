@@ -4,8 +4,8 @@ This guide walks through packaging CallHub with vendor dependencies, uploading i
 
 ## 1. Build a vendor-bundled release archive
 1. Run `composer install --no-dev --optimize-autoloader` and `npm install && npm run build` locally or in CI.
-2. Remove any development caches (`rm -rf node_modules tests .git`).
-3. Zip the entire project directory **including** the populated `vendor/` folder, for example `zip -r callhub-release.zip .`.
+2. Execute `php artisan build:zip` to generate `dist/callhub-latest.zip` with the `vendor/` directory included, caches cleared, and installer unlocked. Pass `--filename=my-release.zip` to customise the artifact name.
+3. If you prefer manual packaging, ensure `.env`, `storage/installed.flag`, and runtime caches are removed and that the populated `vendor/` directory is bundled.
 
 ## 2. Upload and extract under `public_html`
 1. Log into cPanel → **File Manager**.

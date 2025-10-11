@@ -379,6 +379,7 @@ class InstallerController extends Controller
         try {
             File::put(base_path('.env'), $this->formatEnv($envValues));
             File::put(storage_path('installed.flag'), now()->toIso8601String());
+            $this->lockInstallerAccess();
         } catch (Throwable $throwable) {
             return back()->withErrors([
                 'app' => 'Unable to write configuration files: ' . $throwable->getMessage(),
@@ -415,6 +416,32 @@ class InstallerController extends Controller
                 'appUrl' => $data['app_url'],
             ])->render(),
         ]);
+    }
+
+    private function lockInstallerAccess(): void
+    {
+        $htaccessPath = public_path('.htaccess');
+
+        if (! File::exists($htaccessPath)) {
+            return;
+        }
+
+        $contents = File::get($htaccessPath);
+
+        if (Str::contains($contents, 'RewriteRule ^install')) {
+            return;
+        }
+
+        $rule = "    RewriteRule ^install - [R=403,L]";
+        $needle = '    RewriteRule ^ index.php [L]';
+
+        if (Str::contains($contents, $needle)) {
+            $updated = Str::replaceFirst($needle, $rule . PHP_EOL . PHP_EOL . $needle, $contents);
+        } else {
+            $updated = rtrim($contents, "\n") . PHP_EOL . $rule . PHP_EOL;
+        }
+
+        File::put($htaccessPath, $updated);
     }
 
     private function runSystemChecks(): array

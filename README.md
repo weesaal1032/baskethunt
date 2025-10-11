@@ -62,6 +62,7 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 ## cPanel Deployment
 
 - Follow [DEPLOYING_ON_CPANEL.md](DEPLOYING_ON_CPANEL.md) to package a vendor-bundled release, upload it under `public_html`, set writable permissions, and register cron jobs on shared hosting.
+- Use `php artisan build:zip` to emit `dist/callhub-latest.zip` with vendor dependencies bundled, caches cleared, the installer unlocked, and `/install` automatically secured post-setup.
 - The deployment guide also covers S3-compatible storage, Whisper transcription modes, and telephony provider configuration to complete post-install hardening.
 - After cron executes, `/health/status` exposes `scheduler_last_ran_at` and `jobs_runner_last_ran_at` timestamps so you can confirm the hosting panel is invoking tasks on schedule.
 
