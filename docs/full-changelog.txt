@@ -19,3 +19,4 @@
 19 | Exports and internal APIs | Added call reporting CSV exports, admin help docs, and JWT-protected BI endpoints.
 20 | cPanel deployment guide and cron telemetry | Documented vendor bundle packaging, cron job cadence, and heartbeat reporting surfaced in /health.
 21 | Final polish: tests and static analysis | Added Pest coverage, PHPStan config, and smoke-test helper.
+22 | Installer packaging pipeline | Added build:zip command, installer rewrite enforcement, and packaging documentation.
