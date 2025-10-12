@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 23
+Date (UTC): 2025-10-12
+Author: CallHub engineering log
+
+High-Level Overview
+Finalised the telephony provider integration by making payload field mappings fully dynamic across the admin UI, ingestion pipeline, and preview tooling so arbitrary provider schemas can hydrate CallHub records without code edits.
+
+Files Created / Modified / Deleted
+Created app/Support/Providers/TelephonyMappingDefaults.php and tests/Fixtures/providers/telephony_calls.json. Updated app/Services/Providers/GenericRestClient.php, app/Services/Calls/CallIngestionService.php, app/Http/Controllers/Admin/TelephonyProviderController.php, resources/views/admin/providers/mapping.blade.php, and associated feature and unit tests to consume the new mapping behaviour.
+
+Data Model & Migrations (if any)
+No schema changes were required; existing calls, recordings, and settings tables store the remapped values and metadata.
+
+Routes, Controllers, Commands
+Enhanced the admin telephony mapping controller routes (admin.providers.telephony.mapping, admin.providers.telephony.mapping.update, admin.providers.telephony.preview) to handle dynamic row submissions, validation, and preview redirects backed by saved cursors.
+
+Services, Jobs, and Algorithms
+GenericRestClient now normalises stored mappings with defaults before extracting payloads, returning transformed collections that include raw provider data for metadata capture. CallIngestionService reuses the same mapping definitions to populate call attributes, queue metadata, agent assignments, and recording queues while caching agent lookups and guarding against cursor loops.
+
+Configuration & Environment
+No new configuration keys were introduced; the workflow reuses existing telephony.provider.* settings and ensures sane defaults are injected when mappings are absent or partially defined.
+
+Dependencies & Libraries
+No composer or npm packages were added. The mapping view continues to rely on Alpine.js already bundled with the base layout for dynamic form rows.
+
+UI/UX Notes (if applicable)
+The telephony mapping screen now exposes an Alpine-driven table for arbitrary key-to-path rows, highlights common CallHub fields, and surfaces API previews showing mapped values and next-cursor tokens.
+
+Security & Compliance
+Validation enforces presence of a provider_call_id mapping and redacts JSON headers/queries from flash state. Mapping storage continues to use the encrypted settings repository, so no additional exposure of provider credentials occurs.
+
+Performance & Scalability
+Mapping defaults are cached in-memory within ingestion loops and agent resolution uses a static lookup cache to limit repeated database queries during large polling windows.
+
+Observability
+Telephony request logging continues to record endpoint status, and ingested call metadata now embeds __callhub_meta.mapped_fields for later debugging of provider payload transformations.
+
+Testing & Verification
+php -l executed on app/Services/Providers/GenericRestClient.php, app/Services/Calls/CallIngestionService.php, and app/Http/Controllers/Admin/TelephonyProviderController.php. New feature tests cover the mapping screen workflow and poll:calls command using the telephony_calls.json fixture, though full PHPUnit execution was deferred in this environment.
+
+Rollback / Remediation
+Reverting to static mappings involves restoring previous settings values via database backup or SettingsService CLI usage. If ingestion regressions occur, reset telephony.provider.mapping to defaults via the admin UI and rerun poll:calls.
+
+Known Limitations & Open Questions
+Only a single mapping set is supported; multi-provider configurations will need future enhancements. Additional validation may be required to coerce complex nested arrays or type conversions beyond strings and integers.
+
+Next-Step Preview
+Upcoming work may focus on provider-specific adapters, automated schema detection, and surfacing mapping coverage metrics within the health dashboard.
+
+Glossary for New Terms Introduced
+Telephony mapping defaults: Built-in key-to-path suggestions ensuring core call attributes resolve even when admins supply partial mappings.
+
+References
+app/Http/Controllers/Admin/TelephonyProviderController.php; app/Services/Providers/GenericRestClient.php; app/Services/Calls/CallIngestionService.php; app/Support/Providers/TelephonyMappingDefaults.php; resources/views/admin/providers/mapping.blade.php; tests/Feature/Admin/Providers/TelephonyProviderControllerTest.php; tests/Feature/Console/PollCallsCommandTest.php; tests/Fixtures/providers/telephony_calls.json.
