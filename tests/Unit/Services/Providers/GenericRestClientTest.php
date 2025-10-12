@@ -25,21 +25,15 @@ class GenericRestClientTest extends TestCase
 
     public function test_list_calls_maps_payload_and_returns_cursor(): void
     {
+        $fixture = json_decode(
+            file_get_contents(base_path('tests/Fixtures/providers/telephony_calls.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+
         Http::fake([
-            'https://telephony.test/calls*' => Http::response([
-                'data' => [
-                    [
-                        'id' => 'abc123',
-                        'from' => '+15550000001',
-                        'to' => '+15550000099',
-                        'started_at' => '2024-05-10T12:00:00Z',
-                        'duration' => 360,
-                        'status' => 'completed',
-                        'recording_url' => 'https://telephony.test/recordings/abc123.mp3',
-                    ],
-                ],
-                'next_cursor' => 'cursor-1',
-            ], 200),
+            'https://telephony.test/calls*' => Http::response($fixture, 200),
         ]);
 
         $this->settings->method('get')->willReturnCallback(function (string $key, $default = null) {
@@ -54,12 +48,14 @@ class GenericRestClientTest extends TestCase
                 'telephony.provider.rate_limit' => ['max_attempts' => 1],
                 'telephony.provider.mapping' => [
                     'provider_call_id' => 'id',
-                    'from_number' => 'from',
-                    'to_number' => 'to',
-                    'started_at' => 'started_at',
-                    'duration' => 'duration',
-                    'status' => 'status',
-                    'recording_url' => 'recording_url',
+                    'from_number' => 'attributes.from',
+                    'to_number' => 'attributes.to',
+                    'started_at' => 'attributes.started_at',
+                    'duration' => 'attributes.durationSeconds',
+                    'status' => 'attributes.status',
+                    'recording_url' => 'relationships.recording.data.url',
+                    'queue' => 'attributes.queueId',
+                    'agent_email' => 'attributes.agent.email',
                 ],
             ];
 
@@ -74,9 +70,12 @@ class GenericRestClientTest extends TestCase
         $page = $client->listCalls($from, $to);
 
         $call = $page->calls()->first();
-        $this->assertSame('abc123', $call['provider_call_id']);
+        $this->assertSame('call-001', $call['provider_call_id']);
         $this->assertSame('+15550000001', $call['from_number']);
-        $this->assertSame('cursor-1', $page->nextCursor());
+        $this->assertSame('sales', $call['queue']);
+        $this->assertSame('alice.agent@example.com', $call['agent_email']);
+        $this->assertSame(300, $call['raw']['attributes']['durationSeconds']);
+        $this->assertNull($page->nextCursor());
 
         Http::assertSent(function ($request) use ($from, $to) {
             parse_str(parse_url($request->url(), PHP_URL_QUERY) ?? '', $params);

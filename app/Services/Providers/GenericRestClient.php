@@ -5,6 +5,7 @@ namespace App\Services\Providers;
 use App\Services\Providers\Exceptions\TelephonyClientException;
 use App\Services\Providers\ValueObjects\TelephonyCallPage;
 use App\Services\Settings\SettingsService;
+use App\Support\Providers\TelephonyMappingDefaults;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
@@ -81,34 +82,61 @@ class GenericRestClient implements TelephonyClientInterface
      */
     private function mapCalls(array $calls): Collection
     {
-        $mapping = $this->settings->get('telephony.provider.mapping', []);
-        if (! is_array($mapping)) {
-            $mapping = [];
-        }
-
-        $defaultMapping = [
-            'provider_call_id' => 'id',
-            'from_number' => 'from',
-            'to_number' => 'to',
-            'started_at' => 'started_at',
-            'ended_at' => 'ended_at',
-            'duration' => 'duration',
-            'status' => 'status',
-            'recording_url' => 'recording_url',
-        ];
-
-        $mapping = array_filter($mapping + $defaultMapping);
+        $mapping = $this->normalizeMapping($this->settings->get('telephony.provider.mapping', []));
 
         return collect($calls)->map(static function (array $call) use ($mapping): array {
             $transformed = [];
             foreach ($mapping as $key => $path) {
-                $transformed[$key] = $path !== null ? data_get($call, $path) : null;
+                if (! is_string($path) || $path === '') {
+                    $transformed[$key] = null;
+
+                    continue;
+                }
+
+                $transformed[$key] = data_get($call, $path);
             }
 
             $transformed['raw'] = $call;
 
             return $transformed;
         });
+    }
+
+    /**
+     * @param mixed $mapping
+     * @return array<string, string|null>
+     */
+    private function normalizeMapping(mixed $mapping): array
+    {
+        $defaults = TelephonyMappingDefaults::values();
+
+        if (! is_array($mapping)) {
+            $mapping = [];
+        }
+
+        $normalized = [];
+
+        foreach ($defaults as $key => $path) {
+            $normalized[$key] = $path;
+        }
+
+        foreach ($mapping as $key => $value) {
+            if (! is_string($key)) {
+                continue;
+            }
+
+            if (is_string($value) && $value !== '') {
+                $normalized[$key] = $value;
+
+                continue;
+            }
+
+            if ($value === null || $value === '') {
+                $normalized[$key] = null;
+            }
+        }
+
+        return $normalized;
     }
 
     /**

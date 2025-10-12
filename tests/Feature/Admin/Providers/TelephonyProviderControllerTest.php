@@ -32,14 +32,12 @@ class TelephonyProviderControllerTest extends TestCase
             'recording_endpoint' => '/api/calls/{callId}/recording',
             'telephony_headers_json' => json_encode(['Accept' => 'application/json']),
             'telephony_query_json' => json_encode(['include' => 'recording']),
-            'mapping_provider_call_id' => 'attributes.id',
-            'mapping_from_number' => 'attributes.from',
-            'mapping_to_number' => 'attributes.to',
-            'mapping_started_at' => 'attributes.started_at',
-            'mapping_ended_at' => 'attributes.ended_at',
-            'mapping_duration' => 'attributes.duration',
-            'mapping_status' => 'attributes.status',
-            'mapping_recording_url' => 'relationships.recording.data.url',
+            'mapping' => [
+                ['key' => 'provider_call_id', 'path' => 'attributes.id'],
+                ['key' => 'from_number', 'path' => 'attributes.from'],
+                ['key' => 'queue', 'path' => 'attributes.queueId'],
+                ['key' => 'recording_url', 'path' => 'relationships.recording.data.url'],
+            ],
         ];
 
         $response = $this->actingAs($admin)->post(route('admin.providers.telephony.mapping.update'), $payload);
@@ -59,6 +57,7 @@ class TelephonyProviderControllerTest extends TestCase
 
         $this->assertSame('attributes.id', $mapping['provider_call_id']);
         $this->assertSame('attributes.from', $mapping['from_number']);
+        $this->assertSame('attributes.queueId', $mapping['queue']);
 
         $headers = json_decode(
             (string) DB::table('settings')->where('key', 'telephony.provider.request_headers')->value('value'),

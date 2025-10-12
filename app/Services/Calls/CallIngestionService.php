@@ -6,9 +6,11 @@ use App\Jobs\DownloadRecordingJob;
 use App\Models\Call;
 use App\Models\Job as DomainJob;
 use App\Models\Provider;
+use App\Models\User;
 use App\Models\Recording;
 use App\Services\Providers\TelephonyClientInterface;
 use App\Services\Settings\SettingsService;
+use App\Support\Providers\TelephonyMappingDefaults;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -97,13 +99,14 @@ class CallIngestionService
     private function ingestCall(int $providerId, array $payload): array
     {
         $mapping = $this->mapping();
-        $providerCallId = $this->stringValue(data_get($payload, $mapping['provider_call_id'] ?? 'id'));
+        $rawPayload = $this->rawPayload($payload);
+        $providerCallId = $this->stringValue($this->fetchMappedValue($payload, $rawPayload, $mapping, 'provider_call_id', 'id'));
 
         if ($providerCallId === null) {
             return [false, false, false];
         }
 
-        return DB::transaction(function () use ($providerId, $payload, $mapping, $providerCallId): array {
+        return DB::transaction(function () use ($providerId, $payload, $rawPayload, $mapping, $providerCallId): array {
             $call = Call::query()->where('provider_call_id', $providerCallId)->first();
 
             if ($call === null) {
@@ -112,22 +115,27 @@ class CallIngestionService
 
             $wasExisting = $call->exists;
             $call->provider_id = $providerId;
-            $call->from_number = $this->stringValue(data_get($payload, $mapping['from_number'] ?? 'from')) ?? 'Unknown';
-            $call->to_number = $this->stringValue(data_get($payload, $mapping['to_number'] ?? 'to')) ?? 'Unknown';
+            $call->from_number = $this->stringValue($this->fetchMappedValue($payload, $rawPayload, $mapping, 'from_number', 'from')) ?? 'Unknown';
+            $call->to_number = $this->stringValue($this->fetchMappedValue($payload, $rawPayload, $mapping, 'to_number', 'to')) ?? 'Unknown';
             $call->direction = $this->normaliseDirection(
-                $this->stringValue(data_get($payload, $mapping['direction'] ?? 'direction'))
+                $this->stringValue($this->fetchMappedValue($payload, $rawPayload, $mapping, 'direction', 'direction'))
             );
-            $call->started_at = $this->normaliseTimestamp(data_get($payload, $mapping['started_at'] ?? 'started_at'));
-            $call->ended_at = $this->normaliseTimestamp(data_get($payload, $mapping['ended_at'] ?? 'ended_at'));
-            $call->duration_sec = $this->integerValue(data_get($payload, $mapping['duration'] ?? 'duration'));
-            $call->disposition = $this->stringValue(data_get($payload, $mapping['status'] ?? 'status'));
-            $call->metadata = $payload;
+            $call->started_at = $this->normaliseTimestamp($this->fetchMappedValue($payload, $rawPayload, $mapping, 'started_at', 'started_at'));
+            $call->ended_at = $this->normaliseTimestamp($this->fetchMappedValue($payload, $rawPayload, $mapping, 'ended_at', 'ended_at'));
+            $call->duration_sec = $this->integerValue($this->fetchMappedValue($payload, $rawPayload, $mapping, 'duration', 'duration'));
+            $call->disposition = $this->stringValue(
+                $this->fetchMappedValue($payload, $rawPayload, $mapping, 'disposition')
+            ) ?? $this->stringValue($this->fetchMappedValue($payload, $rawPayload, $mapping, 'status', 'status'));
+            $call->queue = $this->stringValue($this->fetchMappedValue($payload, $rawPayload, $mapping, 'queue'));
+            $call->metadata = $this->buildMetadata($rawPayload, $mapping);
+
+            $this->assignAgent($call, $payload, $rawPayload, $mapping);
 
             $callDirty = $call->isDirty();
             $call->save();
 
             $recordingQueued = false;
-            $recordingUrl = $this->stringValue(data_get($payload, $mapping['recording_url'] ?? 'recording_url'));
+            $recordingUrl = $this->stringValue($this->fetchMappedValue($payload, $rawPayload, $mapping, 'recording_url', 'recording_url'));
 
             if ($recordingUrl !== null) {
                 $recordingQueued = $this->ensureRecordingQueued($call, $recordingUrl);
@@ -191,30 +199,36 @@ class CallIngestionService
 
     private function mapping(): array
     {
-        $mapping = $this->settings->get('telephony.provider.mapping', []);
+        $stored = $this->settings->get('telephony.provider.mapping', []);
 
-        if (! is_array($mapping)) {
-            $mapping = [];
+        if (! is_array($stored)) {
+            $stored = [];
         }
 
-        $mapping = array_filter(
-            $mapping,
-            static fn ($value): bool => is_string($value) && $value !== ''
-        );
+        $defaults = TelephonyMappingDefaults::values();
+        $mapping = $defaults;
 
-        $defaults = [
-            'provider_call_id' => 'id',
-            'from_number' => 'from',
-            'to_number' => 'to',
-            'started_at' => 'started_at',
-            'ended_at' => 'ended_at',
-            'duration' => 'duration',
-            'status' => 'status',
-            'recording_url' => 'recording_url',
-            'direction' => 'direction',
-        ];
+        foreach ($stored as $key => $value) {
+            if (! is_string($key)) {
+                continue;
+            }
 
-        return array_merge($defaults, $mapping);
+            if (is_string($value) && $value !== '') {
+                $mapping[$key] = $value;
+
+                continue;
+            }
+
+            if ($value === null || $value === '') {
+                $mapping[$key] = null;
+            }
+        }
+
+        if (! isset($mapping['provider_call_id']) || ! is_string($mapping['provider_call_id']) || $mapping['provider_call_id'] === '') {
+            $mapping['provider_call_id'] = 'id';
+        }
+
+        return $mapping;
     }
 
     private function resolveProviderId(): int
@@ -269,6 +283,21 @@ class CallIngestionService
         return 0;
     }
 
+    private function nullableInteger(mixed $value): ?int
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            $int = (int) $value;
+
+            return $int >= 0 ? $int : null;
+        }
+
+        return null;
+    }
+
     private function normaliseTimestamp(mixed $value): ?CarbonImmutable
     {
         if ($value instanceof CarbonImmutable) {
@@ -299,5 +328,124 @@ class CallIngestionService
             'outbound' => 'outbound',
             default => 'inbound',
         };
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $rawPayload
+     * @param array<string, string|null> $mapping
+     */
+    private function fetchMappedValue(array $payload, array $rawPayload, array $mapping, string $key, ?string $fallback = null): mixed
+    {
+        $path = $mapping[$key] ?? $fallback;
+
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        $value = data_get($payload, $path);
+
+        if ($value !== null) {
+            return $value;
+        }
+
+        return data_get($rawPayload, $path);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function rawPayload(array $payload): array
+    {
+        $raw = $payload['raw'] ?? $payload;
+
+        return is_array($raw) ? $raw : $payload;
+    }
+
+    /**
+     * @param array<string, mixed> $rawPayload
+     * @param array<string, string|null> $mapping
+     * @return array<string, mixed>
+     */
+    private function buildMetadata(array $rawPayload, array $mapping): array
+    {
+        $metadata = $rawPayload;
+
+        $mapped = [];
+        foreach ($mapping as $key => $path) {
+            if (! is_string($path) || $path === '') {
+                continue;
+            }
+
+            $mapped[$key] = data_get($rawPayload, $path);
+        }
+
+        if ($mapped !== []) {
+            $metadata['__callhub_meta'] = [
+                'mapped_fields' => $mapped,
+            ];
+        }
+
+        return $metadata;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $rawPayload
+     * @param array<string, string|null> $mapping
+     */
+    private function assignAgent(Call $call, array $payload, array $rawPayload, array $mapping): void
+    {
+        $explicitAgentId = $this->nullableInteger($this->fetchMappedValue($payload, $rawPayload, $mapping, 'agent_id'));
+        $hasAgentIdMapping = array_key_exists('agent_id', $mapping);
+
+        if ($explicitAgentId !== null && User::query()->whereKey($explicitAgentId)->exists()) {
+            $call->agent_id = $explicitAgentId;
+
+            return;
+        }
+
+        if ($hasAgentIdMapping && $explicitAgentId === null) {
+            $call->agent_id = null;
+        }
+
+        $identifier = $this->stringValue($this->fetchMappedValue($payload, $rawPayload, $mapping, 'agent_email'))
+            ?? $this->stringValue($this->fetchMappedValue($payload, $rawPayload, $mapping, 'agent_identifier'));
+
+        $hasIdentifierMapping = array_key_exists('agent_email', $mapping) || array_key_exists('agent_identifier', $mapping);
+
+        if ($identifier === null) {
+            if ($hasIdentifierMapping) {
+                $call->agent_id = null;
+            }
+
+            return;
+        }
+
+        $resolved = $this->resolveAgentIdByIdentifier($identifier);
+
+        $call->agent_id = $resolved;
+    }
+
+    private function resolveAgentIdByIdentifier(string $identifier): ?int
+    {
+        static $cache = [];
+
+        $key = Str::lower($identifier);
+
+        if (array_key_exists($key, $cache)) {
+            return $cache[$key];
+        }
+
+        $query = User::query();
+
+        if (str_contains($identifier, '@')) {
+            $user = $query->whereRaw('LOWER(email) = ?', [Str::lower($identifier)])->first();
+        } else {
+            $user = $query->whereRaw('LOWER(name) = ?', [Str::lower($identifier)])->first();
+        }
+
+        return $cache[$key] = $user?->id;
     }
 }

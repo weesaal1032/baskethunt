@@ -37,42 +37,39 @@
                 </div>
             </div>
 
+            @php
+                $mappingRows = collect(old('mapping', $form['mapping_rows'] ?? []))
+                    ->map(fn ($row) => [
+                        'key' => $row['key'] ?? '',
+                        'path' => $row['path'] ?? '',
+                    ])->values()->all();
+                $knownKeys = $form['known_keys'] ?? [];
+            @endphp
             <div>
                 <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Payload Field Mapping</h2>
-                <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Define how remote payload keys translate into CallHub domain attributes. Dot-notation is supported for nested JSON.</p>
+                <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Define how remote payload keys translate into CallHub domain attributes. Dot-notation is supported for nested JSON fields.</p>
             </div>
-            <div class="grid gap-6 md:grid-cols-2">
-                <div>
-                    <label for="mapping_provider_call_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Provider Call Identifier</label>
-                    <input id="mapping_provider_call_id" name="mapping_provider_call_id" type="text" value="{{ old('mapping_provider_call_id', $form['mapping']['provider_call_id']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" required>
-                </div>
-                <div>
-                    <label for="mapping_status" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Call Status</label>
-                    <input id="mapping_status" name="mapping_status" type="text" value="{{ old('mapping_status', $form['mapping']['status']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
-                </div>
-                <div>
-                    <label for="mapping_from_number" class="block text-sm font-medium text-slate-700 dark:text-slate-300">From Number</label>
-                    <input id="mapping_from_number" name="mapping_from_number" type="text" value="{{ old('mapping_from_number', $form['mapping']['from_number']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
-                </div>
-                <div>
-                    <label for="mapping_to_number" class="block text-sm font-medium text-slate-700 dark:text-slate-300">To Number</label>
-                    <input id="mapping_to_number" name="mapping_to_number" type="text" value="{{ old('mapping_to_number', $form['mapping']['to_number']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
-                </div>
-                <div>
-                    <label for="mapping_started_at" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Started At</label>
-                    <input id="mapping_started_at" name="mapping_started_at" type="text" value="{{ old('mapping_started_at', $form['mapping']['started_at']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
-                </div>
-                <div>
-                    <label for="mapping_ended_at" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Ended At</label>
-                    <input id="mapping_ended_at" name="mapping_ended_at" type="text" value="{{ old('mapping_ended_at', $form['mapping']['ended_at']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
-                </div>
-                <div>
-                    <label for="mapping_duration" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Duration (seconds)</label>
-                    <input id="mapping_duration" name="mapping_duration" type="text" value="{{ old('mapping_duration', $form['mapping']['duration']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
-                </div>
-                <div>
-                    <label for="mapping_recording_url" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Recording URL Field</label>
-                    <input id="mapping_recording_url" name="mapping_recording_url" type="text" value="{{ old('mapping_recording_url', $form['mapping']['recording_url']) }}" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500">
+            <div x-data="telephonyMapping({ rows: @json($mappingRows) })" class="space-y-4">
+                <template x-for="(row, index) in rows" :key="index">
+                    <div class="grid gap-4 md:grid-cols-6 items-end">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Internal Field</label>
+                            <input :name="`mapping[${index}][key]`" x-model="row.key" type="text" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" placeholder="e.g. provider_call_id" required>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Provider JSON Path</label>
+                            <input :name="`mapping[${index}][path]`" x-model="row.path" type="text" class="mt-2 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:ring-brand-500" placeholder="e.g. attributes.queueId">
+                        </div>
+                        <div class="md:col-span-1 flex justify-end">
+                            <button type="button" class="mt-2 inline-flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-600 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-rose-500 hover:text-rose-600" @click="removeRow(index)" x-show="rows.length > 1">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                </template>
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Common field keys: {{ implode(', ', $knownKeys) }}</p>
+                    <button type="button" class="inline-flex items-center justify-center rounded-md border border-brand-500 px-3 py-2 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:hover:bg-slate-800" @click="addRow()">Add Field Mapping</button>
                 </div>
             </div>
 
@@ -152,3 +149,20 @@
         </form>
     </section>
 </div>
+@push('scripts')
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('telephonyMapping', ({ rows }) => ({
+                rows: Array.isArray(rows) && rows.length ? rows : [{ key: 'provider_call_id', path: 'id' }],
+                addRow() {
+                    this.rows.push({ key: '', path: '' });
+                },
+                removeRow(index) {
+                    if (this.rows.length > 1) {
+                        this.rows.splice(index, 1);
+                    }
+                },
+            }));
+        });
+    </script>
+@endpush

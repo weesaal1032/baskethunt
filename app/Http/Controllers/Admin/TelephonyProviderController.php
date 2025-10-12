@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Providers\Exceptions\TelephonyClientException;
 use App\Services\Providers\TelephonyClientInterface;
 use App\Services\Settings\SettingsService;
+use App\Support\Providers\TelephonyMappingDefaults;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,17 +40,7 @@ class TelephonyProviderController extends Controller
 
         $headers = $this->decodeJson($validated['telephony_headers_json'] ?? null);
         $query = $this->decodeJson($validated['telephony_query_json'] ?? null);
-
-        $mapping = [
-            'provider_call_id' => $this->nullableString($validated['mapping_provider_call_id'] ?? null),
-            'from_number' => $this->nullableString($validated['mapping_from_number'] ?? null),
-            'to_number' => $this->nullableString($validated['mapping_to_number'] ?? null),
-            'started_at' => $this->nullableString($validated['mapping_started_at'] ?? null),
-            'ended_at' => $this->nullableString($validated['mapping_ended_at'] ?? null),
-            'duration' => $this->nullableString($validated['mapping_duration'] ?? null),
-            'status' => $this->nullableString($validated['mapping_status'] ?? null),
-            'recording_url' => $this->nullableString($validated['mapping_recording_url'] ?? null),
-        ];
+        $mapping = $this->normaliseMappingRows($validated['mapping']);
 
         $this->settings->setMany([
             'telephony.provider.mapping' => $mapping,
@@ -115,9 +106,9 @@ class TelephonyProviderController extends Controller
 
     private function formState(): array
     {
-        $mapping = $this->settings->get('telephony.provider.mapping', []);
-        if (! is_array($mapping)) {
-            $mapping = [];
+        $storedMapping = $this->settings->get('telephony.provider.mapping', []);
+        if (! is_array($storedMapping)) {
+            $storedMapping = [];
         }
 
         $headers = $this->settings->get('telephony.provider.request_headers', []);
@@ -130,26 +121,9 @@ class TelephonyProviderController extends Controller
             $query = [];
         }
 
-        $defaultMapping = [
-            'provider_call_id' => 'id',
-            'from_number' => 'from',
-            'to_number' => 'to',
-            'started_at' => 'started_at',
-            'ended_at' => 'ended_at',
-            'duration' => 'duration',
-            'status' => 'status',
-            'recording_url' => 'recording_url',
-        ];
-
-        $sanitizedMapping = [];
-        foreach ($mapping as $key => $value) {
-            if (is_string($value) && $value !== '') {
-                $sanitizedMapping[$key] = $value;
-            }
-        }
-
         return [
-            'mapping' => array_merge($defaultMapping, $sanitizedMapping),
+            'mapping_rows' => $this->mappingRows($storedMapping),
+            'known_keys' => array_keys(TelephonyMappingDefaults::values()),
             'headers_json' => $headers !== [] ? json_encode($headers, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : '',
             'query_json' => $query !== [] ? json_encode($query, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : '',
             'calls_endpoint' => (string) $this->settings->get('telephony.provider.calls_endpoint', '/calls'),
@@ -160,14 +134,9 @@ class TelephonyProviderController extends Controller
     private function validateMapping(Request $request): array
     {
         $validator = Validator::make($request->all(), [
-            'mapping_provider_call_id' => ['required', 'string', 'max:255'],
-            'mapping_from_number' => ['nullable', 'string', 'max:255'],
-            'mapping_to_number' => ['nullable', 'string', 'max:255'],
-            'mapping_started_at' => ['nullable', 'string', 'max:255'],
-            'mapping_ended_at' => ['nullable', 'string', 'max:255'],
-            'mapping_duration' => ['nullable', 'string', 'max:255'],
-            'mapping_status' => ['nullable', 'string', 'max:255'],
-            'mapping_recording_url' => ['nullable', 'string', 'max:255'],
+            'mapping' => ['required', 'array', 'min:1'],
+            'mapping.*.key' => ['required', 'string', 'max:64'],
+            'mapping.*.path' => ['nullable', 'string', 'max:255'],
             'telephony_headers_json' => ['nullable', 'json'],
             'telephony_query_json' => ['nullable', 'json'],
             'calls_endpoint' => ['required', 'string', 'max:255'],
@@ -178,6 +147,29 @@ class TelephonyProviderController extends Controller
             $recordingEndpoint = $request->input('recording_endpoint');
             if (is_string($recordingEndpoint) && ! Str::contains($recordingEndpoint, '{callId}')) {
                 $validator->errors()->add('recording_endpoint', 'Recording endpoint must include a {callId} placeholder.');
+            }
+
+            $rows = $request->input('mapping', []);
+            $providerKeyPresent = false;
+
+            if (is_array($rows)) {
+                foreach ($rows as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+
+                    $key = Str::of((string) ($row['key'] ?? ''))->snake()->value();
+                    $path = $this->nullableString($row['path'] ?? null);
+
+                    if ($key === 'provider_call_id' && $path !== null) {
+                        $providerKeyPresent = true;
+                        break;
+                    }
+                }
+            }
+
+            if (! $providerKeyPresent) {
+                $validator->errors()->add('mapping', 'A provider_call_id mapping with a value is required.');
             }
         });
 
@@ -201,5 +193,70 @@ class TelephonyProviderController extends Controller
         $value = $value !== null ? trim($value) : null;
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * @param array<int, array{key?: string, path?: string|null}> $rows
+     * @return array<string, string|null>
+     */
+    private function normaliseMappingRows(array $rows): array
+    {
+        $normalized = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $key = Str::of((string) ($row['key'] ?? ''))->snake()->value();
+
+            if ($key === '') {
+                continue;
+            }
+
+            $normalized[$key] = $this->nullableString($row['path'] ?? null);
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<string, mixed> $storedMapping
+     * @return array<int, array{key: string, path: string}>
+     */
+    private function mappingRows(array $storedMapping): array
+    {
+        $rows = [];
+        $defaults = TelephonyMappingDefaults::values();
+        $seen = [];
+
+        foreach ($storedMapping as $key => $value) {
+            if (! is_string($key)) {
+                continue;
+            }
+
+            $rows[] = [
+                'key' => $key,
+                'path' => is_string($value) ? $value : '',
+            ];
+            $seen[$key] = true;
+        }
+
+        foreach ($defaults as $key => $value) {
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $rows[] = [
+                'key' => $key,
+                'path' => is_string($value) ? $value : '',
+            ];
+        }
+
+        if ($rows === []) {
+            $rows[] = ['key' => 'provider_call_id', 'path' => 'id'];
+        }
+
+        return $rows;
     }
 }

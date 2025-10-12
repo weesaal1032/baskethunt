@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "id": "call-001",
+      "attributes": {
+        "from": "+15550000001",
+        "to": "+15550000099",
+        "started_at": "2024-05-10T10:00:00Z",
+        "ended_at": "2024-05-10T10:05:00Z",
+        "durationSeconds": 300,
+        "status": "completed",
+        "direction": "outbound",
+        "queueId": "sales",
+        "agent": {
+          "id": 42,
+          "name": "Alice Agent",
+          "email": "alice.agent@example.com"
+        }
+      },
+      "relationships": {
+        "recording": {
+          "data": {
+            "url": "https://telephony.test/recordings/call-001.mp3"
+          }
+        }
+      }
+    }
+  ],
+  "meta": {
+    "next_cursor": null
+  }
+}
