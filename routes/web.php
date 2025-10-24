@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\CallExportController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HelpController;
+use App\Http\Controllers\Admin\HealthController;
 use App\Http\Controllers\Admin\RecordingLibraryController;
 use App\Http\Controllers\Admin\QaReportsController;
 use App\Http\Controllers\Admin\QaScoresController;
@@ -48,6 +49,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 
     Route::middleware('role:admin')->group(function (): void {
         Route::get('logs', [DashboardController::class, 'logs'])->name('logs');
+        Route::get('health/e2e', [HealthController::class, 'e2e'])->name('health.e2e');
         Route::get('help', [HelpController::class, 'index'])->name('help');
         Route::get('settings/general', [SettingsController::class, 'edit'])->name('settings.general');
         Route::post('settings/general', [SettingsController::class, 'update'])->name('settings.general.update');

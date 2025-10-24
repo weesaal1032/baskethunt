@@ -5,6 +5,7 @@ namespace App\Services\Transcription;
 use App\Models\Recording;
 use App\Services\Settings\SettingsService;
 use App\Services\Storage\StorageService;
+use App\Services\Transcription\Drivers\MockTranscriptionDriver;
 use App\Services\Transcription\Drivers\TranscriptionDriver;
 use App\Services\Transcription\Drivers\WhisperApiDriver;
 use App\Services\Transcription\Drivers\WhisperCliDriver;
@@ -53,6 +54,7 @@ class TranscriptionService
             $this->drivers[$engine] = match ($engine) {
                 'whisper_api' => new WhisperApiDriver(config('transcription.drivers.whisper_api', [])),
                 'whisper_cli', 'whisper_local' => new WhisperCliDriver(config('transcription.drivers.whisper_cli', [])),
+                'mock' => new MockTranscriptionDriver(config('transcription.drivers.mock', [])),
                 default => throw new RuntimeException(sprintf('Unsupported transcription engine [%s].', $engine)),
             };
         }

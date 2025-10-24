@@ -82,6 +82,7 @@ class TelephonyProviderControllerTest extends TestCase
                 ],
             ]), 'cursor-2')
         );
+        $mockClient->method('testConnectivity')->willReturn(['status' => 'ok']);
 
         $this->app->instance(TelephonyClientInterface::class, $mockClient);
 

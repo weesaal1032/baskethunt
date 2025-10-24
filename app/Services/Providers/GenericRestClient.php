@@ -19,6 +19,7 @@ class GenericRestClient implements TelephonyClientInterface
 {
     private const DEFAULT_CALLS_ENDPOINT = '/calls';
     private const DEFAULT_RECORDING_ENDPOINT = '/calls/{callId}/recording';
+    private const DEFAULT_TEST_ENDPOINT = '/health';
 
     public function __construct(
         private readonly HttpFactory $http,
@@ -75,6 +76,38 @@ class GenericRestClient implements TelephonyClientInterface
         }
 
         throw new TelephonyClientException('Unable to resolve remote recording URL.');
+    }
+
+    public function testConnectivity(): array
+    {
+        $baseUrl = trim((string) $this->settings->get('telephony.provider.base_url', ''));
+
+        if ($baseUrl === '' || str_contains($baseUrl, 'example.com')) {
+            return [
+                'status' => 'skipped',
+                'message' => 'Telephony base URL not configured; skipping remote connectivity check.',
+            ];
+        }
+
+        $endpoint = (string) $this->settings->get('telephony.provider.test_endpoint', self::DEFAULT_TEST_ENDPOINT);
+        $endpoint = $this->normalizeEndpoint($endpoint);
+
+        $response = $this->performRequest('GET', $endpoint);
+
+        $body = null;
+
+        try {
+            $decoded = $response->json();
+            $body = is_array($decoded) ? $decoded : $response->body();
+        } catch (Throwable) {
+            $body = $response->body();
+        }
+
+        return [
+            'status' => $response->successful() ? 'ok' : 'error',
+            'code' => $response->status(),
+            'body' => $body,
+        ];
     }
 
     /**

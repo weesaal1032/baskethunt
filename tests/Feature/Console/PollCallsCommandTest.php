@@ -59,6 +59,7 @@ class PollCallsCommandTest extends TestCase
         $mockClient->method('listCalls')->willReturn(
             new TelephonyCallPage(collect([$callPayload]), null)
         );
+        $mockClient->method('testConnectivity')->willReturn(['status' => 'ok']);
 
         $this->app->instance(TelephonyClientInterface::class, $mockClient);
 

@@ -150,6 +150,7 @@ CallHub is a Laravel 11 starter for call analytics, QA, and transcription workfl
 - `/admin` now surfaces an operations overview with rolling 24-hour metrics for call ingestion, recording downloads, transcription completions, and job failures alongside queue depth and storage utilisation.
 - Alerts raise when local disk consumption exceeds 80% or when recent job failures require investigation; admins can drill into the bundled log viewer at `/admin/logs`.
 - Storage backend usage is summarised per driver, helping operators identify when to migrate recordings to S3 and ensuring health dashboards reflect the most recent telephony poll timestamp alongside scheduler/job heartbeat data sourced from `/health/status`.
+- The `/admin/health/e2e` diagnostics screen provisions sample data end-to-end: it pings the configured telephony provider (or skips when unset), seeds a synthetic call/recording, exercises storage + mock transcription, submits a QA score, validates RBAC, generates CSV exports, and snapshots dashboard metrics with green checkmarks on success.
 
 ## Modules
 

@@ -17,6 +17,11 @@ return [
             'threads' => env('WHISPER_CLI_THREADS', 4),
             'timeout' => env('WHISPER_CLI_TIMEOUT', 600),
         ],
+        'mock' => [
+            'label' => 'Mock (Diagnostics)',
+            'text' => env('CALLHUB_TRANSCRIPTION_MOCK_TEXT', 'Mock transcription generated for diagnostics.'),
+            'confidence' => env('CALLHUB_TRANSCRIPTION_MOCK_CONFIDENCE', 0.95),
+        ],
     ],
 
     'options' => [
