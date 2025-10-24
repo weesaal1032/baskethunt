@@ -22,3 +22,4 @@
 22 | Installer packaging pipeline | Added build:zip command, installer rewrite enforcement, and packaging documentation.
 23 | Telephony provider mapping finalization | Enabled dynamic field mappings, admin preview tooling, and ingestion alignment with provider schemas.
 24 | Telephony mapping dynamic ingestion alignment | Dynamic admin-defined field mappings applied across previews and poller ingestion.
+25 | End-to-end diagnostics harness | Added admin health checklist exercising provider, storage, transcription, QA, and export pipelines.

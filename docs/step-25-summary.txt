@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 25
+Date (UTC): 2025-10-24
+Author: CallHub engineering log
+
+High-Level Overview
+Introduced an administrator-facing end-to-end diagnostics harness that programmatically exercises provider connectivity, recording ingestion, storage, transcription, QA scoring, RBAC validation, exports, and dashboard hydration with synthetic data to validate fresh deployments.
+
+Files Created / Modified / Deleted
+Created resources/views/admin/health/e2e.blade.php and app/Services/Health/E2eHealthCheckService.php to render and orchestrate the checklist. Updated app/Http/Controllers/Admin/HealthController.php, app/Services/Providers/GenericRestClient.php, app/Services/Transcription/TranscriptionService.php, routes/web.php, config/callhub.php, tests/Feature/Admin/E2eHealthCheckTest.php, and supporting services to inject the diagnostics workflow and mock transcription driver wiring.
+
+Data Model & Migrations (if any)
+No schema changes were necessary; diagnostics reuse the existing calls, recordings, transcripts, QA scores, and audits tables for seeded test rows that are removed at the end of the run.
+
+Routes, Controllers, Commands
+Added /admin/health/e2e guarded by admin RBAC and CSRF protection. HealthController gained run and show actions to dispatch the diagnostics workflow, and new route names (admin.health.e2e.index, admin.health.e2e.run) were registered for navigation and POST execution.
+
+Services, Jobs, and Algorithms
+E2eHealthCheckService sequences steps: provider ping, call ingestion with cursor rollback, synthetic MP3 creation, download pipeline invocation, transcription via mock driver, QA scoring, RBAC probe, CSV export, and dashboard refresh. Each step records execution time, structured context, and outcome flags for the view.
+
+Configuration & Environment
+Config/callhub.php exposes toggles for enabling the diagnostics, selecting the transcription mock driver, and customizing provider connectivity endpoints. No new .env keys are mandatory; defaults reuse existing provider and storage settings.
+
+Dependencies & Libraries
+No composer or npm packages were added. Diagnostics lean on core Laravel HTTP client, storage abstractions, and the previously bundled Wavesurfer/Alpine assets already loaded on the recording detail page.
+
+UI/UX Notes (if applicable)
+The diagnostics page lists each validation step with status icons, inline descriptions, and expandable logs. Administrators trigger the run via a button that streams live progress updates, culminating in green checks and aggregate timing once all steps pass.
+
+Security & Compliance
+Access is restricted to admin role users. Provider credentials pulled from encrypted settings are never echoed in the UI, and synthetic records are tagged to prevent accidental exposure in exports. Audit logging captures the diagnostics execution event for compliance.
+
+Performance & Scalability
+Steps short-circuit on failure and reuse lightweight synthetic payloads to avoid heavy processing. Temporary assets are stored on the configured backend and cleaned after verification, preventing disk growth.
+
+Observability
+Each diagnostics step emits structured log entries and updates a persisted last_run timestamp for the health dashboard, giving operators traceability into the environment verification history.
+
+Testing & Verification
+Static analysis via php -l was executed on modified controllers and services. The new Feature/Admin/E2eHealthCheckTest covers the happy path using faked telephony and storage backends. Full phpunit execution remains pending due to missing vendor binaries in the execution environment.
+
+Rollback / Remediation
+Disable the diagnostics navigation link by toggling the callhub.health.e2e.enabled config or reverting the controller/view additions. Remove synthetic records by running the diagnostics cleanup helper or truncating tagged QA/call artifacts.
+
+Known Limitations & Open Questions
+Diagnostics currently rely on the mock transcription driver and do not stream real provider audio; future work should allow providers to opt into live-call verification. Browser progress updates are page-refresh based rather than WebSockets.
+
+Next-Step Preview
+Planned follow-up includes integrating diagnostics telemetry into the health dashboard historical charts and expanding the checklist to cover outbound notification triggers.
+
+Glossary for New Terms Introduced
+Diagnostics step: Atomic validation task executed by the E2eHealthCheckService. Synthetic call: Seeded call/recording/transcript trio created solely for health verification.
+
+References
+app/Services/Health/E2eHealthCheckService.php; resources/views/admin/health/e2e.blade.php; app/Http/Controllers/Admin/HealthController.php; tests/Feature/Admin/E2eHealthCheckTest.php; config/callhub.php.
