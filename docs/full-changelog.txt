@@ -1,0 +1,26 @@
+01 | Scaffold Laravel 11 CallHub application | Replaced legacy PHP codebase with Laravel 11 skeleton, domain repositories, and Tailwind layout.
+02 | Laravel 11 modular scaffold | Added domain routes, repositories, migrations, and Tailwind layout
+03 | Authentication, OTP, and RBAC | Added email/password login with optional OTP, RBAC middleware, and authorization policies
+04 | Installer Wizard | Added four-step system checks, DB provisioning, admin setup, env writing, and install lockout
+05 | Settings module infrastructure | Added database-backed settings storage, admin form for site metadata, and runtime helper.
+06 | Expanded admin settings coverage | Added multi-tab admin form with telephony, storage, transcription, notification, and privacy persistence.
+07 | Storage backend drivers | Added pluggable storage service with local/S3 drivers, migrations utility, and configuration/docs updates.
+08 | Telephony provider client and mapping UI | Added GenericRestClient with retry/backoff plus admin mapping preview workflow.
+09 | Telephony call ingestion and polling | Added scheduled poll:calls command, ingestion service, recording download queue, and health telemetry.
+10 | Recording download worker | Streamed downloads with FFmpeg MP3 conversion, waveform capture, and transcription enqueue.
+11 | Whisper transcription pipeline | Added Whisper API/local drivers, transcription job runner integration, and admin caps.
+12 | Admin operations dashboard | Aggregated 24-hour ingestion, failure, queue, and storage telemetry with disk alerts and log viewer.
+13 | Recording library export & filters | Added admin recording catalogue with advanced filters, pagination, and privacy-aware CSV downloads.
+14 | Genesys-style recording review workspace | Added two-pane playback/transcript detail page with signed audio streaming and Wavesurfer integration.
+15 | QA scoring workflow | Added rubric builder, autosave scoring workspace, and agent/team reporting with CSV export.
+16 | Security hardening and audit logging | Masked PII, RBAC streaming guardrails, installer unlock CLI, and compliance audits.
+17 | Data retention and deletion tooling | Added nightly retention enforcement, manual call purge command, and storage cleanup audits.
+18 | Notifications and alerting | Added NotificationService with Slack/email alerts, scheduled health checks, and daily summaries.
+19 | Exports and internal APIs | Added call reporting CSV exports, admin help docs, and JWT-protected BI endpoints.
+20 | cPanel deployment guide and cron telemetry | Documented vendor bundle packaging, cron job cadence, and heartbeat reporting surfaced in /health.
+21 | Final polish: tests and static analysis | Added Pest coverage, PHPStan config, and smoke-test helper.
+22 | Installer packaging pipeline | Added build:zip command, installer rewrite enforcement, and packaging documentation.
+23 | Telephony provider mapping finalization | Enabled dynamic field mappings, admin preview tooling, and ingestion alignment with provider schemas.
+24 | Telephony mapping dynamic ingestion alignment | Dynamic admin-defined field mappings applied across previews and poller ingestion.
+25 | End-to-end diagnostics harness | Added admin health checklist exercising provider, storage, transcription, QA, and export pipelines.
+26 | Final release notes | Summarised features, setup checklist, limitations, and upgrade guidance.

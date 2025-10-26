@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 12
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Implemented an admin operations overview that consolidates 24-hour ingestion, download, transcription, queue, and storage telemetry with disk usage alerts and an embedded log viewer to support rapid health checks after each poll cycle.【F:app/Services/Admin/AdminDashboardService.php†L23-L199】【F:resources/views/admin/dashboard.blade.php†L21-L123】【F:README.md†L80-L84】【F:app/Http/Controllers/Admin/DashboardController.php†L16-L66】
+
+Files Created / Modified / Deleted
+Introduced AdminDashboardService with supporting AdminDashboardMetrics, DiskUsageSnapshot, and StorageBackendBreakdown value objects, wired the admin dashboard controller and Blade templates, extended the README, and added a unit test covering the aggregated metrics calculations.【F:app/Services/Admin/AdminDashboardService.php†L1-L199】【F:app/Services/Admin/AdminDashboardMetrics.php†L1-L27】【F:app/Services/Admin/Data/DiskUsageSnapshot.php†L1-L13】【F:app/Services/Admin/Data/StorageBackendBreakdown.php†L1-L13】【F:app/Http/Controllers/Admin/DashboardController.php†L1-L68】【F:resources/views/admin/dashboard.blade.php†L1-L124】【F:resources/views/admin/logs.blade.php†L1-L17】【F:README.md†L80-L84】【F:tests/Unit/Services/Admin/AdminDashboardServiceTest.php†L1-L109】
+
+Data Model & Migrations (if any)
+No database schema changes were required; the dashboard queries existing calls, recordings, transcripts, and jobs tables plus the failed_jobs queue snapshot to generate counts.【F:app/Services/Admin/AdminDashboardService.php†L72-L114】
+
+Routes, Controllers, Commands
+The `/admin` route now maps to the dashboard index for admin and lead roles, while `/admin/logs` remains admin-only and renders the latest Laravel log lines via the updated controller methods.【F:routes/web.php†L22-L37】【F:app/Http/Controllers/Admin/DashboardController.php†L16-L66】
+
+Services, Jobs, and Algorithms
+AdminDashboardService computes rolling 24-hour counts, aggregates queue depth/backlog, enumerates storage utilisation per backend, samples disk capacity from the storage path, and raises alerts when failures occur or disk usage exceeds 80 percent.【F:app/Services/Admin/AdminDashboardService.php†L23-L199】
+
+Configuration & Environment
+The dashboard reads the persisted `telephony.provider.last_polled_at` setting to report the latest successful poll and exposes disk saturation alerts highlighted in the README’s admin health guidance.【F:app/Services/Admin/AdminDashboardService.php†L57-L70】【F:app/Services/Admin/AdminDashboardService.php†L184-L199】【F:README.md†L80-L84】
+
+Dependencies & Libraries
+The controller tails `storage/logs/laravel.log` using `SplFileObject`, while disk usage relies on PHP’s `disk_total_space` and `disk_free_space` helpers to avoid shelling out during cPanel-friendly deployments.【F:app/Http/Controllers/Admin/DashboardController.php†L28-L66】【F:app/Services/Admin/AdminDashboardService.php†L156-L175】
+
+UI/UX Notes (if applicable)
+The dashboard Blade view surfaces alert banners, metric tiles, storage tables, and operational guidance with role-gated access to the log viewer, formatted using Tailwind utility classes and number/byte helpers.【F:resources/views/admin/dashboard.blade.php†L21-L123】
+
+Security & Compliance
+Dashboard access remains behind authenticated role middleware, with logs restricted to admins and the UI only exposing the log link when the current user holds that role.【F:routes/web.php†L22-L37】【F:resources/views/admin/dashboard.blade.php†L36-L41】
+
+Performance & Scalability
+Metric generation relies on scoped aggregate queries against indexed tables and queue snapshots, and the storage breakdown pre-populates both local and S3 drivers to keep tiles stable even without data.【F:app/Services/Admin/AdminDashboardService.php†L23-L154】
+
+Observability
+The metrics payload captures queue depth, backlog, failure totals, disk utilisation, storage distribution, and alerts, while the controller’s log tailer offers immediate access to recent stack traces for debugging.【F:app/Services/Admin/AdminDashboardService.php†L23-L199】【F:app/Http/Controllers/Admin/DashboardController.php†L28-L66】
+
+Testing & Verification
+`AdminDashboardServiceTest` seeds representative calls, recordings, transcripts, jobs, and queue records to assert every metric, storage breakdown entry, alert, and poll timestamp surfaced by the service.【F:tests/Unit/Services/Admin/AdminDashboardServiceTest.php†L21-L109】
+
+Rollback / Remediation
+Reverting this step entails removing the AdminDashboardService wiring, controller log tailing, Blade dashboard/log templates, README guidance, and associated unit coverage.【F:app/Services/Admin/AdminDashboardService.php†L1-L199】【F:app/Http/Controllers/Admin/DashboardController.php†L1-L66】【F:resources/views/admin/dashboard.blade.php†L1-L124】【F:resources/views/admin/logs.blade.php†L1-L17】【F:README.md†L80-L84】【F:tests/Unit/Services/Admin/AdminDashboardServiceTest.php†L1-L109】
+
+Known Limitations & Open Questions
+Disk telemetry currently reflects only the local storage volume, alerts are displayed in-app without triggering downstream notifications, and log viewing is limited to the primary Laravel log file.【F:app/Services/Admin/AdminDashboardService.php†L156-L199】【F:app/Http/Controllers/Admin/DashboardController.php†L28-L66】
+
+Next-Step Preview
+Integrate the generated alerts with the notifications subsystem so disk saturation or repeated failures can trigger Slack or email escalation beyond the in-app banner.【F:app/Services/Admin/AdminDashboardService.php†L39-L53】【F:app/Services/Admin/AdminDashboardService.php†L184-L199】
+
+Glossary for New Terms Introduced
+AdminDashboardMetrics: Aggregated value object returned to the view containing counts, disk usage, storage breakdown, and alert strings for the admin overview.【F:app/Services/Admin/AdminDashboardMetrics.php†L1-L27】
+
+References
+app/Services/Admin/AdminDashboardService.php; app/Http/Controllers/Admin/DashboardController.php; resources/views/admin/dashboard.blade.php; resources/views/admin/logs.blade.php; README.md; tests/Unit/Services/Admin/AdminDashboardServiceTest.php.【F:app/Services/Admin/AdminDashboardService.php†L1-L199】【F:app/Http/Controllers/Admin/DashboardController.php†L1-L66】【F:resources/views/admin/dashboard.blade.php†L1-L124】【F:resources/views/admin/logs.blade.php†L1-L17】【F:README.md†L80-L84】【F:tests/Unit/Services/Admin/AdminDashboardServiceTest.php†L1-L109】

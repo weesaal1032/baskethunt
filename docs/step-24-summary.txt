@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 24
+Date (UTC): 2025-10-24
+Author: CallHub engineering log
+
+High-Level Overview
+Completed the telephony provider mapping finalisation by allowing administrators to define arbitrary provider payload paths that are honoured end-to-end across previews and ingestion, ensuring CallHub can integrate without code changes when schemas shift.
+
+Files Created / Modified / Deleted
+Created tests/Fixtures/providers/telephony_calls.json and app/Support/Providers/TelephonyMappingDefaults.php. Modified app/Services/Providers/GenericRestClient.php, app/Services/Calls/CallIngestionService.php, app/Http/Controllers/Admin/TelephonyProviderController.php, resources/views/admin/providers/mapping.blade.php, related feature and console tests, and supporting settings accessors so the new mapping data flows through previews and pollers.
+
+Data Model & Migrations (if any)
+No schema adjustments were required; the existing calls, recordings, and settings tables already persist mapped attributes and metadata blobs.
+
+Routes, Controllers, Commands
+The admin telephony mapping routes (admin.providers.telephony.mapping, admin.providers.telephony.mapping.update, admin.providers.telephony.preview) gained dynamic row handling, validation of required keys, and preview orchestration that injects saved mappings before hitting the provider API.
+
+Services, Jobs, and Algorithms
+GenericRestClient now merges stored mappings with opinionated defaults, safely dereferences nested payload paths, and captures raw provider payloads for metadata tracing. CallIngestionService consumes the same mapping definitions to populate agent, queue, disposition, and metadata fields while maintaining cursor safety and enqueueing download jobs only for newly observed recordings.
+
+Configuration & Environment
+No new environment flags were added; the flow continues to reuse telephony.provider.* settings, but null or missing entries automatically fall back to TelephonyMappingDefaults so ingestion proceeds even when admins only map a subset of fields.
+
+Dependencies & Libraries
+No composer or npm dependencies changed. The enhanced mapping UI keeps leveraging the bundled Alpine.js runtime for interactive row management without introducing external packages.
+
+UI/UX Notes (if applicable)
+The mapping screen now renders an Alpine-driven editable table supporting arbitrary field rows, inline validation for required call attributes, tooltips describing common mappings, and a preview callout that displays transformed sample data and next-cursor tokens returned by the provider.
+
+Security & Compliance
+Validation enforces presence of identifiers like provider_call_id, strips sensitive header/query values from flashed session data, and stores mappings in the encrypted settings repository, preventing disclosure of provider secrets.
+
+Performance & Scalability
+Mapping lookups are cached per ingestion run and agent assignments reuse memoised user queries to keep polling responsive when ingesting large historical windows. Default fallbacks avoid repeated database hits when optional mappings are omitted.
+
+Observability
+Provider request logging now includes the resolved mapping set within the structured context, and ingested call metadata records __callhub_meta.mapped_fields to help operators audit how provider payloads were translated.
+
+Testing & Verification
+php -l was executed for GenericRestClient, CallIngestionService, and TelephonyProviderController. Updated feature tests cover saving mappings and running poll:calls with the telephony_calls.json fixture; however, full phpunit execution remains pending due to environment package constraints.
+
+Rollback / Remediation
+If a mapping regression occurs, administrators can revert to default mappings via the UI reset action or restore previous settings snapshots from the database. Poller cursors can be rewound by clearing the stored cursor settings and re-running poll:calls with a constrained date window.
+
+Known Limitations & Open Questions
+Only one active mapping set is supported, leaving multi-provider deployments for future work. Additional type coercion may be necessary for providers emitting deeply nested arrays or boolean encodings that differ from CallHub expectations.
+
+Next-Step Preview
+Future iterations may introduce provider-specific adapters, automated schema introspection, and health dashboard metrics reporting coverage of mapped versus unmapped fields.
+
+Glossary for New Terms Introduced
+Telephony mapping defaults: curated key-path suggestions merged with administrator input to guarantee required call attributes are always derivable.
+
+References
+app/Services/Providers/GenericRestClient.php; app/Services/Calls/CallIngestionService.php; app/Http/Controllers/Admin/TelephonyProviderController.php; app/Support/Providers/TelephonyMappingDefaults.php; resources/views/admin/providers/mapping.blade.php; tests/Feature/Admin/Providers/TelephonyProviderControllerTest.php; tests/Feature/Console/PollCallsCommandTest.php; tests/Fixtures/providers/telephony_calls.json.

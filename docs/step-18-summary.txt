@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 18
+Date (UTC): 2025-10-03
+Author: CallHub engineering log
+
+High-Level Overview
+Implemented the cross-channel notification system that emits health, failure, and daily summary alerts via email and Slack using configurable thresholds and scheduler-driven commands.
+
+Files Created / Modified / Deleted
+Introduced alert orchestration in app/Services/Notifications/NotificationService.php, scheduled command entry points under app/Console/Commands/DispatchHealthAlertsCommand.php and SendDailySummaryCommand.php, expanded admin plumbing in app/Http/Controllers/Admin/SettingsController.php, resources/views/admin/settings/general.blade.php, and app/Services/Settings/SettingsService.php, updated configuration through config/callhub.php, .env.example, and README.md, and wired failure emitters in app/Jobs/DownloadRecordingJob.php alongside supporting unit test scaffolding in tests/Unit/Services/Notifications/NotificationServiceTest.php.
+
+Data Model & Migrations (if any)
+No schema changes were required; notification preferences leverage the existing settings persistence layer.
+
+Routes, Controllers, Commands
+No new HTTP routes were added; two artisan commands notifications:health-check and notifications:daily-summary orchestrate immediate health alerts and the daily digest respectively and are scheduled within the console kernel.
+
+Services, Jobs, and Algorithms
+NotificationService centralizes channel fan-out with per-incident deduplication windows, Slack webhook payload shaping, and mail rendering; DownloadRecordingJob now raises failure notifications after exhausting retries, and poller workflows reuse the service for transport-agnostic alerts.
+
+Configuration & Environment
+New CALLHUB_ALERT_EMAILS, CALLHUB_ALERT_SLACK_WEBHOOK, CALLHUB_ALERT_FAILURE_THRESHOLD, and CALLHUB_ALERT_BACKLOG_LIMIT environment variables seed default behavior, all surfaced through the admin settings interface with validation and safe secret handling.
+
+Dependencies & Libraries
+No third-party packages were added; integrations rely on Laravel mailables and native HTTP client support for Slack webhooks.
+
+UI/UX Notes (if applicable)
+The admin settings screen now exposes an Alerts tab containing email recipient inputs, Slack webhook tester, and backlog threshold sliders with contextual helper text and inline test triggers.
+
+Security & Compliance
+Secrets such as Slack webhook URLs and SMTP credentials remain masked on readback, and alerts intentionally omit sensitive payload details to minimize leakage risk.
+
+Performance & Scalability
+Notification dispatch batches related incidents and honours configurable cooldowns to prevent alert storms under sustained failure conditions.
+
+Observability
+Health alert command outputs structured log lines for emitted notifications, and settings-driven test hooks allow operators to confirm delivery from the UI.
+
+Testing & Verification
+Automated unit coverage targeting NotificationService was authored but not executed because vendor binaries are unavailable in the current container; static analysis via php -l guarded syntax quality.
+
+Rollback / Remediation
+Disable scheduled commands and remove notification-specific settings to revert behavior; notification service is isolated so detaching bindings restores prior no-op state.
+
+Known Limitations & Open Questions
+Advanced Slack features such as threads or blocks remain TODO, and long-term deduplication persistence beyond the in-memory cooldown window may be needed for clustered deployments.
+
+Next-Step Preview
+Upcoming work will extend alert hooks across transcription backlogs and enhance observability dashboards with alert status history.
+
+Glossary for New Terms Introduced
+Alert cooldown window: minimum time between repeated alerts for the same failure category to avoid paging loops.
+
+References
+See README.md Alerting section and config/callhub.php notification defaults for operator guidance.

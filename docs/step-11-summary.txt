@@ -1,0 +1,55 @@
+Step Metadata
+Step number: 11
+Date (UTC): 2025-09-24
+Author: CallHub engineering log
+
+High-Level Overview
+Delivered an end-to-end transcription pipeline that drains recording jobs into Whisper API or local whisper.cpp backends, enforces daily usage caps, and persists time-aligned transcript segments for downstream QA review.
+
+Files Created / Modified / Deleted
+Added app/Jobs/TranscribeRecordingJob.php to orchestrate transcript generation and domain job bookkeeping; introduced app/Services/Transcription/TranscriptionService.php with Whisper API and CLI drivers under app/Services/Transcription/Drivers; expanded config/callhub.php, config/transcription.php, .env.example, and resources/views/admin/settings/general.blade.php to expose engine options, timeouts, and minute caps; updated app/Console/Commands/RunJobsCommand.php to execute transcribe jobs; refreshed README.md and tests under tests/Unit/Services/Transcription/* to document and verify the new workflow.
+
+Data Model & Migrations (if any)
+No schema changes were required; transcripts continue to rely on the existing recordings/transcripts tables while storing generated text, confidence, and segments payloads.
+
+Routes, Controllers, Commands
+jobs:run now drains database jobs with the transcribe type alongside downloads, invoking TranscribeRecordingJob synchronously to remain cron-friendly in cPanel environments.
+
+Services, Jobs, and Algorithms
+TranscribeRecordingJob validates recording readiness, copies audio locally via StorageService, checks the daily minute quota, and marks domain jobs with exponential backoff on retryable failures; TranscriptionService selects the configured engine, streams audio into a temp file, merges driver options from settings, and returns TranscriptionResult value objects; WhisperApiDriver builds multipart POSTs with language hints and aggregates segment confidence, while WhisperCliDriver shells out to whisper.cpp, parses JSON payloads, and cleans up artifacts.
+
+Configuration & Environment
+New CALLHUB_TRANSCRIPTION_* and WHISPER_* environment keys surface default engine, language, concurrency, API timeout, CLI binary/model/threads/timeout, and a daily minute cap; these map to config/callhub.php and config/transcription.php and are editable through the admin settings tab.
+
+Dependencies & Libraries
+Leverages Laravel's HTTP client for Whisper API calls, Symfony Process for CLI execution, and assumes an operator-supplied whisper.cpp binary; no composer packages were added but the environment must supply FFmpeg from prior steps and the Whisper endpoints/CLI assets.
+
+UI/UX Notes (if applicable)
+The admin settings interface gained a dedicated Transcription tab with radio-driven toggles between remote and local engines, masked secret inputs, timeout/thread controls, and helper text explaining caps; existing tabs persist their styling and Alpine-driven tab state.
+
+Security & Compliance
+Secrets remain masked unless re-submitted, transcription jobs respect RBAC-controlled recording storage, temp files are wiped after use, and API requests omit sensitive headers from logs while enforcing HTTPS endpoints.
+
+Performance & Scalability
+Audio is streamed in 1 MB chunks to minimize memory usage, CLI runs enforce thread counts and timeouts, API retries are surfaced through domain job backoff, and the daily cap defers excess workload to the next UTC day to control spend.
+
+Observability
+Domain job records track attempts, statuses, and next run windows; transcription failures emit structured logs, and transcripts persist status flags (processing/ready/failed) for health dashboards.
+
+Testing & Verification
+Executed php -l on TranscribeRecordingJob, TranscriptionService, WhisperApiDriver, WhisperCliDriver, RunJobsCommand, and DownloadRecordingJob; attempted phpunit --testsuite=Unit --filter=Transcription and ./vendor/bin/pest, both blocked by missing dependencies in the container.
+
+Rollback / Remediation
+Revert by removing the transcription job/service classes, stripping transcribe handling from jobs:run, deleting Whisper configuration/env keys, pruning admin form inputs, and clearing any queued transcribe jobs to avoid orphaned payloads.
+
+Known Limitations & Open Questions
+No diarization or speaker separation is captured yet, Whisper CLI assumes JSON output naming that may vary with custom builds, concurrency limits rely on scheduler throttling rather than queue worker counts, and daily usage metrics only approximate duration for recordings lacking metadata.
+
+Next-Step Preview
+Surface transcripts and waveform previews within the QA review UI, add health metrics for daily transcription usage, and layer alerting for repeated engine failures.
+
+Glossary for New Terms Introduced
+TranscriptionResult: Value object wrapping transcript text, segments, confidence, and language returned by transcription drivers.
+
+References
+app/Jobs/TranscribeRecordingJob.php; app/Services/Transcription/*; app/Console/Commands/RunJobsCommand.php; resources/views/admin/settings/general.blade.php; config/callhub.php; config/transcription.php; README.md; tests/Unit/Services/Transcription/*.
